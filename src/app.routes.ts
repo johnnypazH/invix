@@ -1,8 +1,11 @@
 import { Routes } from '@angular/router';
 import { AppLayout } from './app/layout/component/app.layout';
-import { Dashboard } from './app/pages/dashboard/dashboard';
-import { Documentation } from './app/pages/documentation/documentation';
-import { Landing } from './app/pages/landing/landing';
+
+// Seus componentes (Verifique se o caminho da importação está correto conforme suas pastas)
+import { Dashboard } from './app/pages/dashboard/dashboard'; // O Sakai costuma exportar como 'Dashboard'
+import { MinhaCarteira } from './app/pages/minha-carteira/minha-carteira'; // Caminho atualizado
+import { NovoAporte } from './app/pages/novo-aporte/novo-aporte'; // Novo componente
+
 import { Notfound } from './app/pages/notfound/notfound';
 
 export const appRoutes: Routes = [
@@ -10,14 +13,19 @@ export const appRoutes: Routes = [
         path: '',
         component: AppLayout,
         children: [
+            // Rota raiz (Dashboard)
             { path: '', component: Dashboard },
-            { path: 'uikit', loadChildren: () => import('./app/pages/uikit/uikit.routes') },
-            { path: 'documentation', component: Documentation },
-            { path: 'pages', loadChildren: () => import('./app/pages/pages.routes') }
+
+            // Rota da sua carteira (http://localhost:4200/carteira)
+            { path: 'carteira', component: MinhaCarteira },
+
+            // Rota para Novo Aporte
+            { path: 'aporte', component: NovoAporte },
         ]
     },
-    { path: 'landing', component: Landing },
-    { path: 'notfound', component: Notfound },
+    // Mantendo as rotas de autenticação para o futuro
     { path: 'auth', loadChildren: () => import('./app/pages/auth/auth.routes') },
+    // A página Notfound é útil para rotas que não existem
+    { path: 'notfound', component: Notfound },
     { path: '**', redirectTo: '/notfound' }
 ];
