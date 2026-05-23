@@ -1,6 +1,8 @@
 /* Aumenta o tamanho da fonte de TODA a tabela neste componente */
 :host ::ng-deep .p-datatable {
     font-size: 1.2rem; /* Aumenta a letra (O padrão é 1rem) */
+    padding: 5px;
+    margin: 5px;
     
     /* Ajuste no Cabeçalho */
     .p-datatable-thead > tr > th {
@@ -19,5 +21,54 @@
     /* Aumenta o tamanho dos ícones de ordenação também */
     .p-sortable-column-icon {
         font-size: 1rem;
+    }
+}
+
+/* Espaçamento geral da página */
+.carteira-grid {
+    margin-top: 1rem;
+}
+
+/* Estilos do Cabeçalho da Carteira (onde fica o Dropdown e o botão Novo Aporte) */
+.carteira-header {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    gap: 1rem;
+
+    @media (min-width: 768px) {
+        flex-direction: row;
+    }
+}
+
+.carteira-title-group {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+
+    @media (min-width: 768px) {
+        width: auto;
+    }
+}
+
+.carteira-title {
+    margin: 0;
+    font-weight: 700;
+    font-size: 1.5rem;
+    display: none;
+
+    @media (min-width: 768px) {
+        display: block;
+    }
+}
+
+.carteira-dropdown {
+    width: 100%;
+    
+    @media (min-width: 768px) {
+        width: 20rem;
     }
 }

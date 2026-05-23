@@ -36,7 +36,6 @@ export class MinhaCarteira implements OnInit, OnDestroy {
   optionsProjecao: any;
   mostrarModal: boolean = false; // Controla se o modal aparece ou não
   carregando: boolean = false; // Controla o estado de loading do botão
-  buscandoAtivo: boolean = false; // Controla o spinner de busca da Brapi
   private carteiraId!: string; // Armazena o ID da carteira atual
   private subscription!: Subscription;
   carteiraIdSelecionada: boolean = true; // Flag para saber se exibimos os gráficos ou o aviso
@@ -103,35 +102,6 @@ export class MinhaCarteira implements OnInit, OnDestroy {
       this.mostrarModal = true;
   }
 
-  buscarDetalhesAtivo() {
-    if (!this.novoAtivo.ticker) return;
-    
-    // Força o Ticker a ficar maiúsculo no formulário e para a chamada da API
-    this.novoAtivo.ticker = this.novoAtivo.ticker.toUpperCase();
-    this.buscandoAtivo = true;
-    this.ativoService.buscarCotacaoBrapi(this.novoAtivo.ticker).subscribe({
-        next: (response) => {
-            if (response.results && response.results.length > 0) {
-                const acao = response.results[0];
-                this.novoAtivo.nome = acao.shortName || acao.longName;
-                this.novoAtivo.precoAtual = acao.regularMarketPrice;
-                this.novoAtivo.setor = 'Ações';
-                // Sugere o preço atual do mercado como o preço que o usuário pagou
-                if (!this.novoAtivo.precoMedio || this.novoAtivo.precoMedio === 0) {
-                    this.novoAtivo.precoMedio = acao.regularMarketPrice; 
-                }
-                this.messageService.add({ severity: 'info', summary: 'Ativo Encontrado', detail: this.novoAtivo.nome });
-            }
-            this.buscandoAtivo = false;
-        },
-        error: (err) => {
-            console.error('Erro Brapi:', err);
-            this.buscandoAtivo = false;
-            this.messageService.add({ severity: 'error', summary: 'Não encontrado', detail: 'Verifique o Ticker digitado.' });
-        }
-    });
-  }
-
   salvarAtivo() {
       this.carregando = true;
       // Agora passamos o ID da carteira atual para o serviço
@@ -139,15 +109,9 @@ export class MinhaCarteira implements OnInit, OnDestroy {
         .pipe(finalize(() => this.carregando = false)) // Garante que o loading para no final
         .subscribe({
           next: (ativoAdicionado) => {
-            // Verifica se o ativo já estava na carteira (O Back-end recalculou o preço médio)
-            const index = this.ativos.findIndex(a => a.ticker === ativoAdicionado.ticker);
-            if (index !== -1) {
-              this.ativos[index] = ativoAdicionado; // Atualiza a linha existente
-              this.ativos = [...this.ativos]; // Força o Angular a redesenhar a tabela
-            } else {
-              this.ativos = [...this.ativos, ativoAdicionado]; // Adiciona nova linha
-            }
-
+            // Adiciona o ativo retornado pela API (já completo) na lista local
+            this.ativos = [...this.ativos, ativoAdicionado];
+            
             // Atualiza os gráficos
             this.initGraficos();
             
@@ -160,8 +124,7 @@ export class MinhaCarteira implements OnInit, OnDestroy {
           error: (err) => {
             // Exibe mensagem de erro
             console.error('Erro ao salvar ativo:', err);
-            const msgErro = err.error?.error || 'Não foi possível salvar o ativo. Tente novamente.';
-            this.messageService.add({ severity: 'error', summary: 'Erro', detail: msgErro });
+            this.messageService.add({ severity: 'error', summary: 'Erro', detail: 'Não foi possível salvar o ativo. Tente novamente.' });
           }
         });
   }

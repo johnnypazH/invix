@@ -6,153 +6,24 @@ import { InputTextModule } from 'primeng/inputtext';
 import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table'; // Para a lista de ações
 import { InputNumberModule } from 'primeng/inputnumber';
+import { SelectModule } from 'primeng/select';
+import { ToastModule } from 'primeng/toast';
+import { MessageService } from 'primeng/api';
+import { finalize } from 'rxjs';
 
-// Importe o serviço de carteira para reutilizar a interface Ativo
-import { CarteiraService, Ativo } from '../../services/carteira';
-
-interface Carteira {
-    id: number;
-    nome: string;
-}
+import { CarteiraService, Carteira } from '../../services/carteira.service';
+import { AtivoService, Ativo } from '../../services/ativo.service';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
     selector: 'app-novo-aporte',
     standalone: true,
-    imports: [CommonModule, ButtonModule, DialogModule, InputTextModule, FormsModule, TableModule, InputNumberModule],
+    imports: [CommonModule, ButtonModule, DialogModule, InputTextModule, FormsModule, TableModule, InputNumberModule, SelectModule, ToastModule],
+    providers: [MessageService],
     styleUrl: './novo-aporte.scss',
-    template: `
-        <div class="grid novo-aporte-grid">
-            <div class="col-12">
-                <div class="card h-full p-4"> <!-- Adicionado p-4 para padding interno do card -->
-                    <h1 class="m-0 text-2xl font-bold">Gerenciar Carteiras</h1>
-                    <p class="text-500 mb-4">Crie e gerencie suas carteiras de investimento.</p>
-                    <div class="flex flex-column gap-3">
-                        <p-button label="Criar Nova Carteira" icon="pi pi-folder-open" (onClick)="abrirModalNovaCarteira()"></p-button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-12">
-                <div class="card p-4"> <!-- Adicionado p-4 para padding interno do card -->
-                    <div class="flex justify-content-between align-items-center mb-4">
-                        <div>
-                            <h1 class="m-0 text-2xl font-bold">Aportar Ativos</h1>
-                            <p class="text-500 mb-0">Selecione um ativo da lista ou adicione um novo.</p>
-                        </div>
-                        <p-button class="botaoaddativosuperior" label="Adicionar Novo Ativo" icon="pi pi-plus" (onClick)="abrirModalAdicionarAtivo()" severity="secondary" styleClass="p-button-lg"></p-button>
-                    </div>
-
-                    <p-table [value]="ativosDisponiveis" 
-                             [paginator]="true" 
-                             [rows]="5" 
-                             responsiveLayout="scroll" 
-                             styleClass="p-datatable-striped">
-                        <ng-template pTemplate="header">
-                            <tr>
-                                <th>Ticker</th>
-                                <th>Empresa</th>
-                                <th>Setor</th>
-                                <th>Preço Atual</th>
-                                <th>Ações</th>
-                            </tr>
-                        </ng-template>
-                        <ng-template pTemplate="body" let-ativo>
-                            <tr>
-                                <td><span class="font-bold border-round p-2 surface-100">{{ativo.ticker}}</span></td>
-                                <td>{{ativo.nome}}</td>
-                                <td>{{ativo.setor}}</td>
-                                <td>{{ativo.precoAtual | currency:'BRL'}}</td>
-                                <td>
-                                    <p-button icon="pi pi-plus" label="Aportar" styleClass="p-button-sm" (onClick)="selecionarAtivoParaAporte(ativo)"></p-button>
-                                </td>
-                            </tr>
-                        </ng-template>
-                        <ng-template pTemplate="emptymessage">
-                            <tr>
-                                <td colspan="5">Nenhum ativo disponível para aporte.</td>
-                            </tr>
-                        </ng-template>
-                    </p-table>
-                </div>
-            </div>
-
-            <!-- Modals -->
-            <p-dialog header="Criar Nova Carteira" 
-                      [(visible)]="mostrarModalNovaCarteira" 
-                      [modal]="true" 
-                      [style]="{width: '350px'}" 
-                      [draggable]="false" 
-                      [resizable]="false">
-                <div class="p-fluid grid formgrid pt-2 px-0">
-                    <div class="field col-12 mb-3">
-                        <label htmlFor="nomeCarteira" class="font-bold block mb-2">Nome da Carteira</label>
-                        <input pInputText id="nomeCarteira" [(ngModel)]="novaCarteiraNome" placeholder="Ex: Carteira de Longo Prazo" autofocus />
-                    </div>
-                </div>
-                <ng-template pTemplate="footer">
-                    <p-button label="Cancelar" icon="pi pi-times" [text]="true" (onClick)="mostrarModalNovaCarteira = false"></p-button>
-                    <p-button label="Salvar" icon="pi pi-check" (onClick)="salvarNovaCarteira()"></p-button>
-                </ng-template>
-            </p-dialog>
-
-            <p-dialog header="Adicionar Novo Ativo" 
-                      [(visible)]="mostrarModalAdicionarAtivo" 
-                      [modal]="true" 
-                      [style]="{width: '380px'}" 
-                      [breakpoints]="{'960px': '75vw', '640px': '95vw'}"
-                      [draggable]="false" 
-                      [resizable]="false">
-                
-                <div class="p-fluid grid formgrid pt-2 px-0">
-                    <div class="field col-12 mb-3">
-                        <label htmlFor="ticker" class="font-bold block mb-2">Ticker (Código)</label>
-                        <input pInputText id="ticker" 
-                               [(ngModel)]="ativoParaAporte.ticker" 
-                               placeholder="Ex: WEGE3" 
-                               autofocus 
-                               class="text-lg" />
-                        <small class="text-500 mt-1 block">O sistema buscará o nome automaticamente.</small>
-                    </div>
-
-                    <div class="field col-12 mb-3 text-left">
-                        <label htmlFor="qtd" class="font-bold block mb-2">Quantidade</label>
-                        <p-inputNumber id="qtd" 
-                                       [(ngModel)]="ativoParaAporte.quantidade" 
-                                       [showButtons]="true" 
-                                       [min]="1"
-                                       buttonLayout="horizontal" 
-                                       inputId="horizontal" 
-                                       spinnerMode="horizontal" 
-                                       [step]="1"
-                                       decrementButtonClass="p-button-danger" 
-                                       incrementButtonClass="p-button-success" 
-                                       incrementButtonIcon="pi pi-plus" 
-                                       decrementButtonIcon="pi pi-minus"
-                                       inputStyleClass="text-center font-bold text-lg">
-                        </p-inputNumber>
-                    </div>
-
-                    <div class="field col-12 mb-0">
-                        <label htmlFor="preco" class="font-bold block mb-2">Preço Pago (Unitário)</label>
-                        <p-inputNumber id="preco" 
-                                       [(ngModel)]="ativoParaAporte.precoMedio" 
-                                       mode="currency" 
-                                       currency="BRL" 
-                                       locale="pt-BR" 
-                                       placeholder="R$ 0,00"
-                                       class="font-bold text-lg">
-                        </p-inputNumber>
-                    </div>
-                </div>
-
-                <ng-template pTemplate="footer">
-                    <p-button label="Cancelar" icon="pi pi-times" [text]="true" (onClick)="mostrarModalAdicionarAtivo = false"></p-button>
-                    <p-button label="Adicionar" icon="pi pi-check" (onClick)="adicionarAtivo()"></p-button>
-                </ng-template>
-            </p-dialog>
-        </div>
-    `
+    templateUrl: './novo-aporte.html'
 })
+
 export class NovoAporte implements OnInit {
     ativosDisponiveis: Ativo[] = [];
     minhasCarteiras: Carteira[] = []; // Simulação de carteiras do usuário
@@ -160,25 +31,54 @@ export class NovoAporte implements OnInit {
     mostrarModalNovaCarteira: boolean = false;
     novaCarteiraNome: string = '';
 
+    carteiraSelecionada: Carteira | null = null;
+    carregandoAporte: boolean = false;
+    buscandoAtivo: boolean = false;
     mostrarModalAdicionarAtivo: boolean = false;
     ativoParaAporte: Ativo = {
         id: 0, ticker: '', nome: '', setor: 'Outros',
         quantidade: 0, precoMedio: 0, precoAtual: 0, dividendYield: 0
     };
 
-    constructor(private carteiraService: CarteiraService) {}
+    constructor(
+        private carteiraService: CarteiraService,
+        private ativoService: AtivoService,
+        private messageService: MessageService,
+        private authService: AuthService
+    ) {}
 
     ngOnInit() {
-        // Carrega a lista de ativos (simulada)
-        this.carteiraService.getCarteira().subscribe(dados => {
-            this.ativosDisponiveis = dados;
+        // Carrega as carteiras do backend
+        this.carteiraService.getDashboard().subscribe({
+            next: (dados: any) => {
+                this.minhasCarteiras = dados.carteiras || [];
+            },
+            error: (err) => console.error('Erro ao carregar carteiras:', err)
         });
 
-        // Simula algumas carteiras existentes
-        this.minhasCarteiras = [
-            { id: 1, nome: 'Carteira Principal' },
-            { id: 2, nome: 'Aposentadoria' }
-        ];
+        // Busca ações REAIS da Brapi para exibir na tabela de oportunidades
+        this.carregarAtivosPopulares();
+    }
+
+    carregarAtivosPopulares() {
+        const tickersTop = 'PETR4,VALE3,ITUB4,WEGE3,BBAS3';
+        this.ativoService.buscarCotacaoBrapi(tickersTop).subscribe({
+            next: (response) => {
+                if (response.results) {
+                    this.ativosDisponiveis = response.results.map((acao: any, index: number) => ({
+                        id: index,
+                        ticker: acao.symbol,
+                        nome: acao.shortName || acao.longName,
+                        setor: 'Ações', // A rota básica da Brapi não traz o setor detalhado sem token premium
+                        quantidade: 0,
+                        precoMedio: 0,
+                        precoAtual: acao.regularMarketPrice,
+                        dividendYield: 0
+                    }));
+                }
+            },
+            error: (err) => console.error('Erro ao buscar Brapi:', err)
+        });
     }
 
     abrirModalNovaCarteira() {
@@ -188,11 +88,14 @@ export class NovoAporte implements OnInit {
 
     salvarNovaCarteira() {
         if (this.novaCarteiraNome.trim()) {
-            const novoId = this.minhasCarteiras.length > 0 ? Math.max(...this.minhasCarteiras.map(c => c.id)) + 1 : 1;
-            this.minhasCarteiras.push({ id: novoId, nome: this.novaCarteiraNome.trim() });
-            console.log('Nova carteira criada:', this.novaCarteiraNome);
-            // Aqui você enviaria para o serviço/backend
-            this.mostrarModalNovaCarteira = false;
+            // Chama o backend real para criar a carteira
+            this.carteiraService.adicionarCarteira({ nome: this.novaCarteiraNome.trim() }).subscribe({
+                next: (carteiraAdicionada) => {
+                    this.minhasCarteiras.push(carteiraAdicionada);
+                    this.mostrarModalNovaCarteira = false;
+                },
+                error: (err) => console.error('Erro ao adicionar carteira:', err)
+            });
         }
     }
 
@@ -207,19 +110,62 @@ export class NovoAporte implements OnInit {
     selecionarAtivoParaAporte(ativo: Ativo) {
         // Preenche o modal com os dados do ativo selecionado
         this.ativoParaAporte = { ...ativo, quantidade: 0, precoMedio: 0 }; // Zera quantidade e preço médio para novo aporte
+        this.carteiraSelecionada = null; // Reseta a carteira selecionada
         this.mostrarModalAdicionarAtivo = true;
     }
 
+    buscarDetalhesAtivo() {
+        if (!this.ativoParaAporte.ticker) return;
+        
+        // Força o Ticker a ficar maiúsculo no formulário e para a chamada da API
+        this.ativoParaAporte.ticker = this.ativoParaAporte.ticker.toUpperCase();
+        this.buscandoAtivo = true;
+        this.ativoService.buscarCotacaoBrapi(this.ativoParaAporte.ticker).subscribe({
+            next: (response) => {
+                if (response.results && response.results.length > 0) {
+                    const acao = response.results[0];
+                    this.ativoParaAporte.nome = acao.shortName || acao.longName;
+                    this.ativoParaAporte.precoAtual = acao.regularMarketPrice;
+                    // Sugere o preço atual do mercado como o preço que o usuário pagou
+                    if (this.ativoParaAporte.precoMedio === 0) {
+                        this.ativoParaAporte.precoMedio = acao.regularMarketPrice; 
+                    }
+                    this.messageService.add({ severity: 'info', summary: 'Ativo Encontrado', detail: this.ativoParaAporte.nome });
+                }
+                this.buscandoAtivo = false;
+            },
+            error: (err) => {
+                console.error('Erro Brapi:', err);
+                this.buscandoAtivo = false;
+                this.messageService.add({ severity: 'error', summary: 'Não encontrado', detail: 'Verifique o Ticker digitado.' });
+            }
+        });
+    }
+
     adicionarAtivo() {
+        if (!this.carteiraSelecionada?.id) {
+            this.messageService.add({ severity: 'warn', summary: 'Atenção', detail: 'Selecione a carteira de destino.' });
+            return;
+        }
+
         if (this.ativoParaAporte.ticker && this.ativoParaAporte.quantidade > 0 && this.ativoParaAporte.precoMedio > 0) {
-            // Lógica para adicionar o ativo a uma carteira específica (futuramente)
-            // Por enquanto, apenas loga e fecha o modal
-            console.log('Ativo adicionado:', this.ativoParaAporte);
-            // Aqui você chamaria um serviço para registrar o aporte
-            this.mostrarModalAdicionarAtivo = false;
+            this.carregandoAporte = true;
+            
+            this.ativoService.adicionarAtivo(this.carteiraSelecionada.id, this.ativoParaAporte)
+                .pipe(finalize(() => this.carregandoAporte = false))
+                .subscribe({
+                    next: () => {
+                        this.messageService.add({ severity: 'success', summary: 'Sucesso', detail: 'Aporte realizado com sucesso!' });
+                        this.mostrarModalAdicionarAtivo = false;
+                    },
+                    error: (err) => {
+                        console.error('Erro ao aportar ativo:', err);
+                        const msgErro = err.error?.error || 'Falha ao salvar o aporte no banco de dados.';
+                        this.messageService.add({ severity: 'error', summary: 'Erro', detail: msgErro });
+                    }
+                });
         } else {
-            // Adicionar validação visual ou mensagem de erro
-            console.warn('Preencha todos os campos para adicionar o ativo.');
+            this.messageService.add({ severity: 'warn', summary: 'Atenção', detail: 'Preencha a quantidade e preço do ativo.' });
         }
     }
 }

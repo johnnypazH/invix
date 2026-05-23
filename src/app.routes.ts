@@ -7,16 +7,21 @@ import { MinhaCarteira } from './app/pages/minha-carteira/minha-carteira'; // Ca
 import { NovoAporte } from './app/pages/novo-aporte/novo-aporte'; // Novo componente
 
 import { Notfound } from './app/pages/notfound/notfound';
+import { authGuard } from './app/pages/auth/auth.guard';
 
 export const appRoutes: Routes = [
     {
         path: '',
         component: AppLayout,
+        canActivate: [authGuard], // ← O SEGURANÇA BARRANDO A ENTRADA!
         children: [
             // Rota raiz (Dashboard)
             { path: '', component: Dashboard },
 
-            // Rota da sua carteira (http://localhost:4200/carteira)
+            // Rota da sua carteira, agora com ID (ex: /carteira/1)
+            { path: 'carteira/:id', component: MinhaCarteira },
+
+            // Rota genérica da carteira sem ID (acessada pelo menu lateral)
             { path: 'carteira', component: MinhaCarteira },
 
             // Rota para Novo Aporte

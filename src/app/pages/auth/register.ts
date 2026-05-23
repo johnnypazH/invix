@@ -2,7 +2,6 @@ import { Component, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
-import { CheckboxModule } from 'primeng/checkbox';
 import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
 import { RippleModule } from 'primeng/ripple';
@@ -12,14 +11,14 @@ import { AuthService } from '../../services/auth.service';
 import { LayoutService } from '../../layout/service/layout.service';
 
 @Component({
-    selector: 'app-login',
+    selector: 'app-register',
     standalone: true,
-    imports: [ButtonModule, CheckboxModule, InputTextModule, PasswordModule, FormsModule, RouterModule, RippleModule, ToastModule],
+    imports: [ButtonModule, InputTextModule, PasswordModule, FormsModule, RouterModule, RippleModule, ToastModule],
     template: `
         <p-toast></p-toast>
         <div class="bg-surface-50 dark:bg-surface-950 flex items-center justify-center min-h-screen min-w-screen overflow-hidden relative">
             
-            <!-- Mini Header Customizado para o Login -->
+            <!-- Mini Header Customizado -->
             <div class="absolute top-0 left-0 w-full p-4 lg:px-8 flex justify-between items-center z-50">
                 <div class="flex items-center gap-2">
                     <img src="assets/images/invix.jpeg" alt="Invix" class="h-8 rounded" />
@@ -33,29 +32,25 @@ import { LayoutService } from '../../layout/service/layout.service';
                     <div class="w-full bg-surface-0 dark:bg-surface-900 py-20 px-8 sm:px-20" style="border-radius: 53px">
                         <div class="text-center mb-8">
                             <img src="assets/images/invix.jpeg" alt="Invix Logo" class="mb-8 w-24 shrink-0 mx-auto rounded-lg shadow-sm" />
-                            <div class="text-surface-900 dark:text-surface-0 text-3xl font-medium mb-4">Bem-vindo ao Invix</div>
-                            <span class="text-muted-color font-medium">Sua carteira de dividendos</span>
+                            <div class="text-surface-900 dark:text-surface-0 text-3xl font-medium mb-4">Crie sua Conta</div>
+                            <span class="text-muted-color font-medium">Comece a gerenciar seus dividendos</span>
                         </div>
 
                         <div>
+                            <label for="name1" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Seu Nome</label>
+                            <input pInputText id="name1" type="text" placeholder="Como quer ser chamado?" class="w-full md:w-120 mb-4" [(ngModel)]="name" />
+
                             <label for="email1" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">E-mail</label>
-                            <input pInputText id="email1" type="text" placeholder="Endereço de e-mail" class="w-full md:w-120 mb-8" [(ngModel)]="email" />
+                            <input pInputText id="email1" type="email" placeholder="Endereço de e-mail" class="w-full md:w-120 mb-4" [(ngModel)]="email" />
 
                             <label for="password1" class="block text-surface-900 dark:text-surface-0 font-medium text-xl mb-2">Senha</label>
-                            <p-password id="password1" [(ngModel)]="password" placeholder="Sua senha" [toggleMask]="true" styleClass="mb-4" [fluid]="true" [feedback]="false"></p-password>
+                            <p-password id="password1" [(ngModel)]="password" placeholder="Crie uma senha segura" [toggleMask]="true" styleClass="mb-8" [fluid]="true" [feedback]="true" promptLabel="Digite a senha" weakLabel="Fraca" mediumLabel="Média" strongLabel="Forte"></p-password>
 
-                            <div class="flex items-center justify-between mt-2 mb-8 gap-8">
-                                <div class="flex items-center">
-                                    <p-checkbox [(ngModel)]="checked" id="rememberme1" binary class="mr-2"></p-checkbox>
-                                    <label for="rememberme1">Lembrar-me</label>
-                                </div>
-                                <span class="font-medium no-underline ml-2 text-right cursor-pointer text-primary">Esqueceu a senha?</span>
-                            </div>
-                            <p-button label="Entrar" styleClass="w-full" (onClick)="onLogin()" [loading]="loading"></p-button>
+                            <p-button label="Criar Conta" styleClass="w-full" (onClick)="onRegister()" [loading]="loading"></p-button>
                             
                             <div class="text-center mt-6">
-                                <span class="text-surface-600 dark:text-surface-200 font-medium text-lg">Não tem uma conta? </span>
-                                <a routerLink="/auth/register" class="font-medium no-underline ml-2 text-primary cursor-pointer text-lg">Cadastre-se</a>
+                                <span class="text-surface-600 dark:text-surface-200 font-medium text-lg">Já tem uma conta? </span>
+                                <a routerLink="/auth/login" class="font-medium no-underline ml-2 text-primary cursor-pointer text-lg">Entrar</a>
                             </div>
                         </div>
                     </div>
@@ -64,13 +59,10 @@ import { LayoutService } from '../../layout/service/layout.service';
         </div>
     `
 })
-export class Login {
+export class Register {
+    name: string = '';
     email: string = '';
-
     password: string = '';
-
-    checked: boolean = false;
-
     loading: boolean = false;
 
     isDarkTheme = computed(() => this.layoutService.layoutConfig().darkTheme);
@@ -86,22 +78,25 @@ export class Login {
         this.layoutService.layoutConfig.update((state) => ({ ...state, darkTheme: !state.darkTheme }));
     }
 
-    onLogin() {
-        if (!this.email || !this.password) {
-            this.messageService.add({ severity: 'warn', summary: 'Atenção', detail: 'Preencha email e senha' });
+    onRegister() {
+        if (!this.name || !this.email || !this.password) {
+            this.messageService.add({ severity: 'warn', summary: 'Atenção', detail: 'Preencha todos os campos.' });
             return;
         }
 
         this.loading = true;
-        this.authService.login(this.email, this.password).subscribe({
+        // Aqui disparamos para a rota futura que o backend vai fazer
+        this.authService.register(this.name, this.email, this.password).subscribe({
             next: () => {
                 this.loading = false;
-                this.router.navigate(['/']); // Redireciona para o Dashboard com sucesso!
+                this.messageService.add({ severity: 'success', summary: 'Sucesso', detail: 'Conta criada! Entrando...' });
+                this.router.navigate(['/']); // Redireciona pro dashboard (pois o JWT já veio)
             },
             error: (err) => {
                 this.loading = false;
-                console.error('Erro de login', err);
-                this.messageService.add({ severity: 'error', summary: 'Erro', detail: 'Credenciais inválidas' });
+                console.error('Erro de cadastro', err);
+                // Se o backend devolver HTTP 400 (ex: email já existe), capturamos aqui
+                this.messageService.add({ severity: 'error', summary: 'Erro', detail: err.error?.error || 'Não foi possível criar a conta.' });
             }
         });
     }

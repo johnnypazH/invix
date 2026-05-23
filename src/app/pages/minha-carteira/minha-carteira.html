@@ -1,140 +1,133 @@
-<div class="grid p-fluid">
-    
-    <div class="col-12 xl:col-6">
-        <div class="card mb-0 flex justify-content-between align-items-center">
-            <div>
-                <h1 class="m-0 text-2xl font-bold">Dashboard de Investimentos</h1>
-                <p class="text-500 mb-0">Visão geral da sua liberdade financeira</p>
+<!-- Toast para exibir mensagens de sucesso/erro -->
+<p-toast></p-toast>
 
-                <p-button label="Novo Aporte" icon="pi pi-plus" styleClass="mt-3" (onClick)="abrirModal()"></p-button>
-            </div>
-        </div>
-    </div>
-    <p-dialog header="Registrar Novo Investimento" 
-          [(visible)]="mostrarModal" 
-          [modal]="true" 
-          [style]="{width: '380px'}" 
-          [breakpoints]="{'960px': '75vw', '640px': '95vw'}"
-          [draggable]="false" 
-          [resizable]="false">
-    
-    <div class="p-fluid grid formgrid pt-2 px-0">
-    
-    <div class="field col-12 mb-3">
-        <label htmlFor="ticker" class="font-bold block mb-2">Ticker (Código)</label>
-        
-        <input pInputText id="ticker" 
-               [(ngModel)]="novoAtivo.ticker" 
-               placeholder="Ex: WEGE3" 
-               autofocus 
-               class="text-lg" />
-               
-        <small class="text-500 mt-1 block">O sistema buscará o nome automaticamente.</small>
-    </div>
+<ng-container *ngIf="carteiraIdSelecionada; else noWallet">
 
-    <div class="field col-12 mb-3 text-left">
-        <label htmlFor="qtd" class="font-bold block mb-2">Quantidade</label>
-        
-        <p-inputNumber id="qtd" 
-                       [(ngModel)]="novoAtivo.quantidade" 
-                       [showButtons]="true" 
-                       [min]="1"
-                       buttonLayout="horizontal" 
-                       inputId="horizontal" 
-                       spinnerMode="horizontal" 
-                       [step]="1"
-                       decrementButtonClass="p-button-danger" 
-                       incrementButtonClass="p-button-success" 
-                       incrementButtonIcon="pi pi-plus" 
-                       decrementButtonIcon="pi pi-minus"
-                       inputStyleClass="text-center font-bold text-lg">
-                       </p-inputNumber>
-    </div>
+<div class="grid carteira-grid">
 
-    <div class="field col-12 mb-0">
-        <label htmlFor="preco" class="font-bold block mb-2">Preço Pago (Unitário)</label>
-        
-        <p-inputNumber id="preco" 
-                       [(ngModel)]="novoAtivo.precoMedio" 
-                       mode="currency" 
-                       currency="BRL" 
-                       locale="pt-BR" 
-                       placeholder="R$ 0,00"
-                       class="font-bold text-lg">
-        </p-inputNumber>
-    </div>
-
-
-</div>
-
-    <ng-template pTemplate="footer">
-        <p-button label="Cancelar" icon="pi pi-times" [text]="true" (onClick)="mostrarModal = false"></p-button>
-        <p-button label="Salvar Aporte" icon="pi pi-check" (onClick)="salvarAtivo()"></p-button>
-    </ng-template>
-
-</p-dialog>
-    
-
-    <div class="col-12 xl:col-6">
-        <div class="card flex flex-column align-items-center justify-content-center h-full">
-            <h5 class="align-self-start">Alocação por Setor</h5>
-            <p-chart type="doughnut" [data]="dataPizza" [options]="optionsPizza" height="350px" width="100%"></p-chart>
-        </div>
-    </div>
-
-    <div class="col-12 xl:col-6">
-        <div class="card h-full">
-            <h5>Projeção de Patrimônio (5 Anos)</h5>
-            <p-chart type="line" [data]="dataProjecao" [options]="optionsProjecao" height="350px" width="100%"></p-chart>
-        </div>
-    </div>
-
-    <div class="col-12 xl:col-6">
+    <!-- Tabela de Ativos -->
+    <div class="col-12">
         <div class="card">
-            <h5>Minha Carteira Detalhada</h5>
-            
-            <p-table [value]="ativos" 
-         [paginator]="true" 
-         [rows]="5" 
-         responsiveLayout="scroll" 
-         styleClass="p-datatable-sm p-datatable-striped text-sm">
+            <div class="carteira-header">
+                <div class="carteira-title-group">
+                    <h2 class="carteira-title text-surface-900 dark:text-surface-0">Visão da Carteira</h2>
+                    <p-select [options]="minhasCarteiras" 
+                              [(ngModel)]="carteiraSelecionada" 
+                              optionLabel="nome" 
+                              (onChange)="onCarteiraChange()" 
+                              placeholder="Alternar carteira..." 
+                              styleClass="carteira-dropdown">
+                    </p-select>
+                </div>
+                <p-button label="Novo Aporte" icon="pi pi-plus" (onClick)="abrirModal()"></p-button>
+            </div>
+            <p-table [value]="ativos" [tableStyle]="{'min-width': '50rem'}" responsiveLayout="scroll">
                 <ng-template pTemplate="header">
                     <tr>
-                        <th class="white-space-nowrap">Ticker</th>
-                        <th class="white-space-nowrap">Empresa</th>
-                        <th class="white-space-nowrap">Setor</th>
-                        <th class="white-space-nowrap">Qtd.</th>
-                        <th class="white-space-nowrap">Preço Médio</th>
-                        <th class="white-space-nowrap">Preço Atual</th>
-                        <th class="white-space-nowrap">Total Investido</th>
-                        <th class="white-space-nowrap">Lucro/Prejuízo</th>
+                        <th pSortableColumn="ticker">Ticker <p-sortIcon field="ticker"></p-sortIcon></th>
+                        <th pSortableColumn="nome">Nome <p-sortIcon field="nome"></p-sortIcon></th>
+                        <th pSortableColumn="setor">Setor <p-sortIcon field="setor"></p-sortIcon></th>
+                        <th pSortableColumn="quantidade" class="text-right">Quantidade <p-sortIcon field="quantidade"></p-sortIcon></th>
+                        <th pSortableColumn="precoMedio" class="text-right">Preço Médio <p-sortIcon field="precoMedio"></p-sortIcon></th>
+                        <th pSortableColumn="precoAtual" class="text-right">Preço Atual <p-sortIcon field="precoAtual"></p-sortIcon></th>
+                        <th class="text-right">Rentabilidade</th>
+                        <th class="text-center" style="width: 5rem">Ações</th>
                     </tr>
                 </ng-template>
-
                 <ng-template pTemplate="body" let-ativo>
                     <tr>
-                        <td class="white-space-nowrap"><span class="font-bold border-round p-2 surface-100">{{ativo.ticker}}</span></td>
-                        <td class="white-space-nowrap">{{ativo.nome}}</td>
-                        <td class="white-space-nowrap">{{ativo.setor}}</td>
-                        <td class="white-space-nowrap">{{ativo.quantidade}}</td>
-                        <td class="white-space-nowrap">{{ativo.precoMedio | currency:'BRL'}}</td>
-                        
-                        <td class="white-space-nowrap" [class.text-green-500]="ativo.precoAtual > ativo.precoMedio"
-                            [class.text-red-500]="ativo.precoAtual < ativo.precoMedio"
-                            class="font-semibold">
-                            {{ativo.precoAtual | currency:'BRL'}}
-                        </td>
-
-                        <td class="white-space-nowrap">{{ ativo.quantidade * ativo.precoMedio | currency:'BRL' }}</td>
-
-                        <td class="white-space-nowrap" [class.text-green-500]="getRentabilidade(ativo) > 0"
-                            [class.text-red-500]="getRentabilidade(ativo) < 0"
-                            class="font-bold">
+                        <td>{{ativo.ticker}}</td>
+                        <td>{{ativo.nome}}</td>
+                        <td>{{ativo.setor}}</td>
+                        <td class="text-right">{{ativo.quantidade}}</td>
+                        <td class="text-right">{{ativo.precoMedio | currency:'BRL'}}</td>
+                        <td class="text-right">{{ativo.precoAtual | currency:'BRL'}}</td>
+                        <td class="text-right" [ngClass]="{'text-green-500': getRentabilidade(ativo) >= 0, 'text-red-500': getRentabilidade(ativo) < 0}">
                             {{ getRentabilidade(ativo) | currency:'BRL' }}
                         </td>
+                        <td class="text-center">
+                            <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger" (onClick)="excluirAtivo(ativo)"></p-button>
+                        </td>
+                    </tr>
+                </ng-template>
+                 <ng-template pTemplate="emptymessage">
+                    <tr>
+                        <td colspan="8" class="text-center">Nenhum ativo encontrado.</td>
                     </tr>
                 </ng-template>
             </p-table>
         </div>
     </div>
+
+    <!-- Gráficos (Movidos para baixo da Tabela) -->
+    <div class="col-12 xl:col-6">
+        <div class="card h-full flex flex-col">
+            <h5>Composição por Setor</h5>
+            <div class="flex-grow flex items-center justify-center p-4 md:p-6 w-full">
+                <div style="width: 100%; max-width: 22rem;">
+                    <p-chart type="pie" [data]="dataPizza" [options]="optionsPizza"></p-chart>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 xl:col-6">
+        <div class="card h-full flex flex-col">
+            <h5>Projeção de Patrimônio</h5>
+            <div class="flex-grow flex items-center justify-center p-4 md:p-6 w-full">
+                <div style="width: 100%;">
+                    <p-chart type="line" [data]="dataProjecao" [options]="optionsProjecao"></p-chart>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+<!-- Modal para Novo Aporte -->
+<p-dialog header="Adicionar Novo Aporte" [(visible)]="mostrarModal" [modal]="true" [style]="{width: '400px'}" [draggable]="false" [resizable]="false">
+    <div class="p-fluid grid formgrid pt-2 px-0">
+        <div class="field col-12 mb-3">
+            <label for="ticker" class="font-bold block mb-2">Ticker (Código)</label>
+            <input pInputText id="ticker" [(ngModel)]="novoAtivo.ticker" (blur)="buscarDetalhesAtivo()" placeholder="Ex: WEGE3" autofocus class="text-lg" />
+            <small class="text-500 mt-1 block" *ngIf="!buscandoAtivo">Ao sair do campo, o sistema buscará o preço.</small>
+            <small class="text-primary mt-1 block" *ngIf="buscandoAtivo"><i class="pi pi-spin pi-spinner"></i> Buscando na Brapi...</small>
+        </div>
+        <div class="field col-12 mb-3 text-left">
+            <label for="quantidade" class="font-bold block mb-2">Quantidade</label>
+            <p-inputNumber id="quantidade" 
+                           [(ngModel)]="novoAtivo.quantidade" 
+                           [showButtons]="true" 
+                           [min]="1"
+                           buttonLayout="horizontal" 
+                           inputId="horizontal" 
+                           spinnerMode="horizontal" 
+                           [step]="1"
+                           decrementButtonClass="p-button-danger" 
+                           incrementButtonClass="p-button-success" 
+                           incrementButtonIcon="pi pi-plus" 
+                           decrementButtonIcon="pi pi-minus"
+                           inputStyleClass="text-center font-bold text-lg">
+            </p-inputNumber>
+        </div>
+        <div class="field col-12 mb-0">
+            <label for="precoMedio" class="font-bold block mb-2">Preço Pago (Unitário)</label>
+            <p-inputNumber id="precoMedio" [(ngModel)]="novoAtivo.precoMedio" mode="currency" currency="BRL" locale="pt-BR" placeholder="R$ 0,00" class="font-bold text-lg"></p-inputNumber>
+        </div>
+    </div>
+    <ng-template pTemplate="footer">
+        <p-button label="Cancelar" icon="pi pi-times" [text]="true" (onClick)="mostrarModal=false"></p-button>
+        <p-button label="Salvar" icon="pi pi-check" (onClick)="salvarAtivo()" [loading]="carregando"></p-button>
+    </ng-template>
+</p-dialog>
+</ng-container>
+
+<!-- Tela de aviso quando nenhuma carteira foi selecionada -->
+<ng-template #noWallet>
+    <div class="flex flex-col items-center justify-center mt-20">
+        <div class="card flex flex-col items-center text-center p-8 w-full max-w-lg">
+            <i class="pi pi-wallet text-6xl text-primary mb-6"></i>
+            <h2 class="text-2xl font-bold mb-4 text-surface-900 dark:text-surface-0">Nenhuma carteira selecionada</h2>
+            <p class="text-surface-600 dark:text-surface-400 mb-8 text-lg">Por favor, selecione uma carteira no Dashboard ou crie uma nova para visualizar seus ativos.</p>
+            <p-button label="Ir para o Dashboard" icon="pi pi-home" routerLink="/"></p-button>
+        </div>
+    </div>
+</ng-template>
