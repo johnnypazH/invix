@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "es2021",                          /* Versão do ECMAScript de saída */
+    "module": "commonjs",                         /* Sistema de módulos */
+    "lib": ["es2021"],                             /* Bibliotecas incluídas na compilação */
+    "rootDir": "./src",                           /* Diretório raiz dos seus fontes .ts */
+    "outDir": "./dist",                           /* Diretório de saída dos arquivos .js compilados */
+    "baseUrl": "./src",                           /* Diretório base para resolver imports */
+    "paths": {
+      "@/*": ["*"]                                /* Mapeia @/ para src/ para imports mais limpos */
+    },
+    "esModuleInterop": true,                      /* Habilita interoperabilidade entre CommonJS e ES Modules */
+    "forceConsistentCasingInFileNames": true,     /* Garante que o case dos nomes de arquivos seja consistente */
+    "strict": true,                               /* Habilita todas as checagens de tipo estritas */
+    "skipLibCheck": true,                         /* Pula a verificação de tipos de arquivos de declaração (.d.ts) */
+    "experimentalDecorators": true,               /* Necessário para o TypeORM (@Entity, @Column) */
+    "emitDecoratorMetadata": true                 /* Necessário para o TypeORM */
+  },
+  "include": [
+    "src/**/*.ts"                                 /* Inclui todos os arquivos .ts dentro da pasta src */
+  ],
+  "exclude": [
+    "node_modules"                                /* Exclui a pasta node_modules da compilação */
+  ]
+}

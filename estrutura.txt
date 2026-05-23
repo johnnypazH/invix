@@ -1,0 +1,9 @@
+src/
+├── @types/          # Definições de tipos TypeScript
+├── config/          # Configurações (banco de dados, env)
+├── controllers/     # Gerenciamento de requisições HTTP
+├── middlewares/     # Middlewares (auth, validação)
+├── models/          # Entidades/Interfaces TypeScript
+├── routes/          # Definição dos endpoints
+├── services/        # Lógica de negócio
+└── app.ts           # Inicialização do Express
