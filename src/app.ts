@@ -8,6 +8,7 @@ import walletRoutes from '@/routes/walletRoutes';
 import corporateEventRoutes from '@/routes/corporateEventRoutes';
 import dashboardRoutes from '@/routes/dashboardRoutes';
 import authRoutes from '@/routes/authRoutes';
+import analyticsRoutes from '@/routes/analyticsRoutes';
 import { authMiddleware } from '@/middlewares/authMiddleware';
 
 const app = express();
@@ -31,6 +32,7 @@ app.use('/api', syncRoutes);
 // Rotas PRIVADAS (Fechadas com o AuthMiddleware)
 app.use('/api/dashboard', authMiddleware, dashboardRoutes); // Rota BFF para a tela de Dashboard
 app.use('/api/wallets', authMiddleware, walletRoutes);
+app.use('/api/analytics', authMiddleware, analyticsRoutes); // Rota BFF para Gráficos e Metas
 app.use('/api/predictions', authMiddleware, predictionRoutes); // Nova rota de previsões!
 app.use('/api/users', authMiddleware, userRoutes);
 

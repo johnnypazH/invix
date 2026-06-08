@@ -1,6 +1,7 @@
 import 'dotenv/config'; // Carrega as variáveis de ambiente
 import app from './app';
 import { AppDataSource } from './config/data-source';
+import { startCronJobs } from './routes/syncCron';
 
 const PORT = process.env.PORT || 3333;
 
@@ -8,6 +9,9 @@ const PORT = process.env.PORT || 3333;
 AppDataSource.initialize().then(() => {
   console.log('📦 Banco de dados conectado com sucesso!');
   
+  // Ligar o robô das rotinas de madrugada (Cron Jobs)
+  startCronJobs();
+
   // Depois que o banco conectar, inicia o servidor Express
   app.listen(PORT, () => {
     console.log('================================================');

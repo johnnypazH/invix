@@ -1,8 +1,19 @@
-# Dependências
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Dependências do Node
 node_modules/
 
-# Arquivos de build
+# Diretório de build compilado pelo TypeScript
 dist/
 
-# Arquivos de ambiente
+# Variáveis de Ambiente (MUITO IMPORTANTE: Segurança)
 .env
+
+# Arquivos gerados pelo Sistema Operacional
+.DS_Store
+Thumbs.db

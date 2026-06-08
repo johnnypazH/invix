@@ -109,10 +109,11 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
           const brapiData = brapiMap.get(ativo.ticker) || {};
           return {
             ticker: ativo.ticker,
-            nome: brapiData.shortName || ativo.ticker,
-            setor: 'Ações', // Fixado por enquanto, pode ser dinâmico futuramente
+            nome: ativo.nome || brapiData.shortName || ativo.ticker, // Usa do banco primeiro
+            setor: ativo.setor || brapiData.sector || 'Outros', // Usa do banco primeiro
             quantidade: ativo.quantity || 0,
             precoMedio: ativo.precoMedio || 0, // Mantém do banco, ou 0 se não existir
+            dataCompra: ativo.dataCompra || null,
             precoAtual: brapiData.regularMarketPrice || 0
           };
         });
@@ -121,10 +122,11 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
         // Fallback: se a Brapi falhar, envia os ativos com preço 0 para não quebrar a tela
         enrichedAssets = ativos.map((ativo: any) => ({
           ticker: ativo.ticker,
-          nome: ativo.ticker,
-          setor: 'Ações',
+          nome: ativo.nome || ativo.ticker,
+          setor: ativo.setor || 'Outros', // Preserva o que já estava salvo no banco!
           quantidade: ativo.quantity || 0,
           precoMedio: ativo.precoMedio || 0,
+          dataCompra: ativo.dataCompra || null,
           precoAtual: 0
         }));
       }
@@ -158,21 +160,24 @@ router.post('/:id/assets', async (req: AuthRequest, res: Response) => {
 
     // 2. Verifica se o ativo é válido (No nosso banco ou na Brapi)
     let ativoValido = false;
+    let brapiData: any = null;
     
-    // Tenta achar na nossa própria base (é muito mais rápido!)
-    const { data: dbData } = await supabase.from('dividends').select('ticker').eq('ticker', tickerFormatado).limit(1);
-    
-    if (dbData && dbData.length > 0) {
-      ativoValido = true;
-    } else {
-      // Se não achou no banco, faz a prova de fogo na Brapi
-      try {
-        const brapiToken = process.env.BRAPI_TOKEN;
-        const response = await axios.get(`https://brapi.dev/api/quote/${tickerFormatado}?token=${brapiToken}`);
-        if (response.data.results && response.data.results.length > 0) {
-          ativoValido = true;
-        }
-      } catch (e) {} // Se a Brapi falhar ou não achar, o ativoValido continua false
+    // Tenta buscar na Brapi primeiro para já garantirmos o "Setor" e o "Nome" da empresa!
+    try {
+      const brapiToken = process.env.BRAPI_TOKEN;
+      const response = await axios.get(`https://brapi.dev/api/quote/${tickerFormatado}?token=${brapiToken}`);
+      if (response.data.results && response.data.results.length > 0) {
+        ativoValido = true;
+        brapiData = response.data.results[0]; // Guarda os dados ricos (nome, setor)
+      }
+    } catch (e) {}
+
+    // Fallback de resiliência: Se a Brapi cair, mas nós já tivermos o ativo no nosso banco, a gente aceita o aporte!
+    if (!ativoValido) {
+      const { data: dbData } = await supabase.from('dividends').select('ticker').eq('ticker', tickerFormatado).limit(1);
+      if (dbData && dbData.length > 0) {
+        ativoValido = true;
+      }
     }
 
     if (!ativoValido) {
@@ -197,6 +202,9 @@ router.post('/:id/assets', async (req: AuthRequest, res: Response) => {
 
     const quantityToAdd = novoAtivo.quantidade || novoAtivo.quantity || 0;
     const precoMedioToAdd = novoAtivo.precoMedio || 0;
+    const dataCompraToAdd = novoAtivo.dataCompra || new Date().toISOString().split('T')[0]; // Se o front não mandar, salva como hoje
+    const setorToAdd = brapiData?.sector || 'Outros';
+    const nomeToAdd = brapiData?.shortName || tickerFormatado;
 
     // Verifica se o ativo já existe na carteira para somar em vez de duplicar
     const existingAssetIndex = ativos.findIndex((a: any) => a.ticker === tickerFormatado);
@@ -217,12 +225,15 @@ router.post('/:id/assets', async (req: AuthRequest, res: Response) => {
       
       ativos[existingAssetIndex].quantity = novaQuantidadeTotal;
       ativos[existingAssetIndex].precoMedio = Number(novoPrecoMedio.toFixed(2));
+      // Nota: Quando o usuário faz um novo aporte numa ação que já tem, 
+      // mantemos intacta a data do PRIMEIRO aporte (dataCompra original).
     } else {
       // Ativo novo, apenas adiciona na lista
       ativos.push({
         ticker: tickerFormatado,
         quantity: quantityToAdd,
-        precoMedio: precoMedioToAdd
+        precoMedio: precoMedioToAdd,
+        dataCompra: dataCompraToAdd
       });
     }
 
@@ -236,7 +247,8 @@ router.post('/:id/assets', async (req: AuthRequest, res: Response) => {
       asset: {
         ticker: tickerFormatado,
         quantidade: existingAssetIndex >= 0 ? ativos[existingAssetIndex].quantity : quantityToAdd,
-        precoMedio: existingAssetIndex >= 0 ? ativos[existingAssetIndex].precoMedio : precoMedioToAdd
+        precoMedio: existingAssetIndex >= 0 ? ativos[existingAssetIndex].precoMedio : precoMedioToAdd,
+        dataCompra: existingAssetIndex >= 0 ? ativos[existingAssetIndex].dataCompra : dataCompraToAdd
       } 
     });
   } catch (error: any) {

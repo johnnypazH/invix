@@ -7,6 +7,9 @@ export interface Asset {
     ticker: string;
     quantity: number;
     precoMedio?: number;
+    dataCompra?: string; // Data em que o ativo foi adquirido (formato YYYY-MM-DD)
+    setor?: string;      // Setor salvo no banco (Ex: Energia)
+    nome?: string;       // Nome da empresa salvo no banco
 }
 
 @Entity('wallets')

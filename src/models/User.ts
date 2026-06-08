@@ -15,6 +15,9 @@ export class User {
     @Column()
     password!: string;
 
+    @Column({ type: "float", default: 5000 })
+    objetivoMensal!: number; // Meta de independência financeira (ex: 5000)
+
     // Um usuário pode ter várias carteiras (OneToMany)
     @OneToMany(() => Wallet, wallet => wallet.user)
     wallets!: Wallet[];
