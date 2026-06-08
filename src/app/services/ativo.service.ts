@@ -12,6 +12,7 @@ export interface Ativo {
   precoMedio: number;
   precoAtual: number;
   dividendYield: number;
+  dataCompra?: string | Date;
 }
 
 @Injectable({

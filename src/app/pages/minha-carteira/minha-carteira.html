@@ -31,6 +31,7 @@
                         <th pSortableColumn="precoMedio" class="text-right">Preço Médio <p-sortIcon field="precoMedio"></p-sortIcon></th>
                         <th pSortableColumn="precoAtual" class="text-right">Preço Atual <p-sortIcon field="precoAtual"></p-sortIcon></th>
                         <th class="text-right">Rentabilidade</th>
+                        <th pSortableColumn="dataCompra" class="text-center">Data Compra <p-sortIcon field="dataCompra"></p-sortIcon></th>
                         <th class="text-center" style="width: 5rem">Ações</th>
                     </tr>
                 </ng-template>
@@ -45,6 +46,7 @@
                         <td class="text-right" [ngClass]="{'text-green-500': getRentabilidade(ativo) >= 0, 'text-red-500': getRentabilidade(ativo) < 0}">
                             {{ getRentabilidade(ativo) | currency:'BRL' }}
                         </td>
+                        <td class="text-center">{{ (ativo.dataCompra | date:'dd/MM/yyyy') || '-' }}</td>
                         <td class="text-center">
                             <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger" (onClick)="excluirAtivo(ativo)"></p-button>
                         </td>
@@ -52,7 +54,7 @@
                 </ng-template>
                  <ng-template pTemplate="emptymessage">
                     <tr>
-                        <td colspan="8" class="text-center">Nenhum ativo encontrado.</td>
+                        <td colspan="9" class="text-center">Nenhum ativo encontrado.</td>
                     </tr>
                 </ng-template>
             </p-table>
@@ -108,9 +110,13 @@
                            inputStyleClass="text-center font-bold text-lg">
             </p-inputNumber>
         </div>
-        <div class="field col-12 mb-0">
+        <div class="field col-12 mb-3">
             <label for="precoMedio" class="font-bold block mb-2">Preço Pago (Unitário)</label>
             <p-inputNumber id="precoMedio" [(ngModel)]="novoAtivo.precoMedio" mode="currency" currency="BRL" locale="pt-BR" placeholder="R$ 0,00" class="font-bold text-lg"></p-inputNumber>
+        </div>
+        <div class="field col-12 mb-0">
+            <label for="dataCompra" class="font-bold block mb-2">Data da Compra (Opcional)</label>
+            <p-datepicker id="dataCompra" [(ngModel)]="novoAtivo.dataCompra" dateFormat="dd/mm/yy" [showIcon]="true" placeholder="Ex: 20/05/2021" appendTo="body" styleClass="w-full"></p-datepicker>
         </div>
     </div>
     <ng-template pTemplate="footer">

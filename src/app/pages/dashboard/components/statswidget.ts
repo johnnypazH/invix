@@ -5,9 +5,13 @@ import { CommonModule } from '@angular/common';
     standalone: true,
     selector: 'app-stats-widget',
     imports: [CommonModule],
-    template: `<!-- Card 1: Patrimônio Total -->
-        <div class="col-span-12 lg:col-span-6 xl:col-span-3">
-            <div class="card mb-0">
+    host: {
+        class: 'block w-full'
+    },
+    template: `<div class="stats-container">
+        <!-- Card 1: Patrimônio Total -->
+        <div class="stats-item">
+            <div class="card mb-0 h-full">
                 <div class="flex justify-between mb-4">
                     <div>
                         <span class="block text-muted-color font-medium mb-4">Patrimônio Total</span>
@@ -22,8 +26,8 @@ import { CommonModule } from '@angular/common';
         </div>
 
         <!-- Card 2: Lucro/Prejuízo -->
-        <div class="col-span-12 lg:col-span-6 xl:col-span-3">
-            <div class="card mb-0">
+        <div class="stats-item">
+            <div class="card mb-0 h-full">
                 <div class="flex justify-between mb-4">
                     <div>
                         <span class="block text-muted-color font-medium mb-4">Lucro / Prejuízo</span>
@@ -46,8 +50,8 @@ import { CommonModule } from '@angular/common';
         </div>
 
         <!-- Card 3: Total de Ativos -->
-        <div class="col-span-12 lg:col-span-6 xl:col-span-3">
-            <div class="card mb-0">
+        <div class="stats-item">
+            <div class="card mb-0 h-full">
                 <div class="flex justify-between mb-4">
                     <div>
                         <span class="block text-muted-color font-medium mb-4">Total de Ativos</span>
@@ -62,8 +66,8 @@ import { CommonModule } from '@angular/common';
         </div>
 
         <!-- Card 4: Dividendos (Simulado) -->
-        <div class="col-span-12 lg:col-span-6 xl:col-span-3">
-            <div class="card mb-0">
+        <div class="stats-item">
+            <div class="card mb-0 h-full">
                 <div class="flex justify-between mb-4">
                     <div>
                         <span class="block text-muted-color font-medium mb-4">Dividendos (Anual)</span>
@@ -73,7 +77,7 @@ import { CommonModule } from '@angular/common';
                         <i class="pi pi-dollar text-purple-500 text-xl!"></i>
                     </div>
                 </div>
-                <span class="text-muted-color">Projeção baseada no D.Y.</span>
+                <span class="text-muted-color">Baseado nos últimos 12 meses</span>
             </div>
         </div>`
 })

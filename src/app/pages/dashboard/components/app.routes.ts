@@ -5,7 +5,7 @@ import { AppLayout } from './app/layout/component/app.layout';
 import { Dashboard } from './app/pages/dashboard/dashboard'; // O Sakai costuma exportar como 'Dashboard'
 import { MinhaCarteira } from './app/pages/minha-carteira/minha-carteira'; // Caminho atualizado
 import { NovoAporte } from './app/pages/novo-aporte/novo-aporte'; // Novo componente
-import { Relatorios } from './app/pages/dashboard/components/relatorios'; 
+import { Relatorios } from './app/pages/relatorios/relatorios'; 
 
 import { Notfound } from './app/pages/notfound/notfound';
 import { authGuard } from './app/pages/auth/auth.guard';
@@ -27,7 +27,7 @@ export const appRoutes: Routes = [
 
             // Rota para Novo Aporte
             { path: 'aporte', component: NovoAporte },
-
+            
             // Rota para a aba de Relatórios e Metas
             { path: 'relatorios', component: Relatorios },
         ]

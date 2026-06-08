@@ -11,6 +11,7 @@ import { InputNumberModule } from 'primeng/inputnumber';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { SelectModule } from 'primeng/select';
+import { DatePickerModule } from 'primeng/datepicker';
 import { AtivoService, Ativo } from '../../services/ativo.service'; // Atualizado para AtivoService
 import { LayoutService } from '../../layout/service/layout.service';
 import { CarteiraService, Carteira } from '../../services/carteira.service';
@@ -19,7 +20,7 @@ import { Subscription, finalize } from 'rxjs';
 @Component({
   selector: 'app-minha-carteira',
   standalone: true,
-  imports: [CommonModule, RouterModule, TableModule, ButtonModule, ChartModule, FormsModule, DialogModule, InputNumberModule, InputTextModule, ToastModule, SelectModule],
+  imports: [CommonModule, RouterModule, TableModule, ButtonModule, ChartModule, FormsModule, DialogModule, InputNumberModule, InputTextModule, ToastModule, SelectModule, DatePickerModule],
   templateUrl: './minha-carteira.html',
   styleUrl: './minha-carteira.scss'
 })
@@ -115,7 +116,6 @@ export class MinhaCarteira implements OnInit, OnDestroy {
                 const acao = response.results[0];
                 this.novoAtivo.nome = acao.shortName || acao.longName;
                 this.novoAtivo.precoAtual = acao.regularMarketPrice;
-                this.novoAtivo.setor = 'Ações';
                 // Sugere o preço atual do mercado como o preço que o usuário pagou
                 if (!this.novoAtivo.precoMedio || this.novoAtivo.precoMedio === 0) {
                     this.novoAtivo.precoMedio = acao.regularMarketPrice; 
@@ -134,8 +134,14 @@ export class MinhaCarteira implements OnInit, OnDestroy {
 
   salvarAtivo() {
       this.carregando = true;
-      // Agora passamos o ID da carteira atual para o serviço
-      this.ativoService.adicionarAtivo(this.carteiraId, this.novoAtivo)
+      
+      const payload = { ...this.novoAtivo };
+      if (payload.dataCompra instanceof Date) {
+          payload.dataCompra = payload.dataCompra.toISOString().split('T')[0];
+      }
+
+      // Agora passamos o ID da carteira atual para o serviço com o payload corrigido
+      this.ativoService.adicionarAtivo(this.carteiraId, payload)
         .pipe(finalize(() => this.carregando = false)) // Garante que o loading para no final
         .subscribe({
           next: (ativoAdicionado) => {

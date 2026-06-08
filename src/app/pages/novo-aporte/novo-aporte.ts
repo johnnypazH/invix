@@ -7,6 +7,7 @@ import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table'; // Para a lista de ações
 import { InputNumberModule } from 'primeng/inputnumber';
 import { SelectModule } from 'primeng/select';
+import { DatePickerModule } from 'primeng/datepicker';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { finalize } from 'rxjs';
@@ -18,7 +19,7 @@ import { AuthService } from '../../services/auth.service';
 @Component({
     selector: 'app-novo-aporte',
     standalone: true,
-    imports: [CommonModule, ButtonModule, DialogModule, InputTextModule, FormsModule, TableModule, InputNumberModule, SelectModule, ToastModule],
+    imports: [CommonModule, ButtonModule, DialogModule, InputTextModule, FormsModule, TableModule, InputNumberModule, SelectModule, DatePickerModule, ToastModule],
     providers: [MessageService],
     styleUrl: './novo-aporte.scss',
     templateUrl: './novo-aporte.html'
@@ -36,7 +37,7 @@ export class NovoAporte implements OnInit {
     buscandoAtivo: boolean = false;
     mostrarModalAdicionarAtivo: boolean = false;
     ativoParaAporte: Ativo = {
-        id: 0, ticker: '', nome: '', setor: 'Outros',
+        id: 0, ticker: '', nome: '', setor: '',
         quantidade: 0, precoMedio: 0, precoAtual: 0, dividendYield: 0
     };
 
@@ -69,7 +70,7 @@ export class NovoAporte implements OnInit {
                         id: index,
                         ticker: acao.symbol,
                         nome: acao.shortName || acao.longName,
-                        setor: 'Ações', // A rota básica da Brapi não traz o setor detalhado sem token premium
+                        setor: acao.sector || '-', // O Back-end vai buscar o oficial depois
                         quantidade: 0,
                         precoMedio: 0,
                         precoAtual: acao.regularMarketPrice,
@@ -101,7 +102,7 @@ export class NovoAporte implements OnInit {
 
     abrirModalAdicionarAtivo() {
         this.ativoParaAporte = {
-            id: 0, ticker: '', nome: '', setor: 'Outros',
+            id: 0, ticker: '', nome: '', setor: '',
             quantidade: 0, precoMedio: 0, precoAtual: 0, dividendYield: 0
         };
         this.mostrarModalAdicionarAtivo = true;
@@ -109,7 +110,7 @@ export class NovoAporte implements OnInit {
 
     selecionarAtivoParaAporte(ativo: Ativo) {
         // Preenche o modal com os dados do ativo selecionado
-        this.ativoParaAporte = { ...ativo, quantidade: 0, precoMedio: 0 }; // Zera quantidade e preço médio para novo aporte
+        this.ativoParaAporte = { ...ativo, quantidade: 0, precoMedio: 0, dataCompra: undefined }; // Zera quantidade e preço médio para novo aporte
         this.carteiraSelecionada = null; // Reseta a carteira selecionada
         this.mostrarModalAdicionarAtivo = true;
     }
@@ -151,7 +152,12 @@ export class NovoAporte implements OnInit {
         if (this.ativoParaAporte.ticker && this.ativoParaAporte.quantidade > 0 && this.ativoParaAporte.precoMedio > 0) {
             this.carregandoAporte = true;
             
-            this.ativoService.adicionarAtivo(this.carteiraSelecionada.id, this.ativoParaAporte)
+            const payload = { ...this.ativoParaAporte };
+            if (payload.dataCompra instanceof Date) {
+                payload.dataCompra = payload.dataCompra.toISOString().split('T')[0];
+            }
+
+            this.ativoService.adicionarAtivo(this.carteiraSelecionada.id, payload)
                 .pipe(finalize(() => this.carregandoAporte = false))
                 .subscribe({
                     next: () => {

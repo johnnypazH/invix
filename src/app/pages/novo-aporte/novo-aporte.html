@@ -124,7 +124,7 @@
                         </p-inputNumber>
                     </div>
 
-                    <div class="field col-12 mb-0">
+                    <div class="field col-12 mb-3">
                         <label htmlFor="preco" class="font-bold block mb-2">Preço Pago (Unitário)</label>
                         <p-inputNumber id="preco" 
                                        [(ngModel)]="ativoParaAporte.precoMedio" 
@@ -134,6 +134,18 @@
                                        placeholder="R$ 0,00"
                                        class="font-bold text-lg">
                         </p-inputNumber>
+                    </div>
+
+                    <div class="field col-12 mb-0">
+                        <label htmlFor="dataCompra" class="font-bold block mb-2">Data da Compra (Opcional)</label>
+                        <p-datepicker id="dataCompra" 
+                                      [(ngModel)]="ativoParaAporte.dataCompra" 
+                                      dateFormat="dd/mm/yy" 
+                                      [showIcon]="true" 
+                                      placeholder="Ex: 20/05/2021" 
+                                      appendTo="body" 
+                                      styleClass="w-full">
+                        </p-datepicker>
                     </div>
                 </div>
 

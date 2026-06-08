@@ -1,0 +1,63 @@
+<div class="grid relatorios-grid">
+    <div class="col-12">
+        <div class="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-4 mt-2">
+            <div>
+                <h2 class="m-0 font-bold text-surface-900 dark:text-surface-0">Relatórios e Metas</h2>
+                <p class="text-500 mt-1 mb-0">Acompanhe sua evolução e projeções financeiras em tempo real.</p>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-3 items-end sm:items-center">
+                <div class="flex flex-col gap-1 w-full sm:w-auto">
+                    <span class="text-sm font-semibold text-surface-600 dark:text-surface-400">Meta Mensal</span>
+                    <p-inputnumber [(ngModel)]="objetivoMensal" mode="currency" currency="BRL" locale="pt-BR" (onBlur)="salvarMetaEAtualizar()" (keydown.enter)="salvarMetaEAtualizar()"></p-inputnumber>
+                </div>
+                <div class="flex flex-col gap-1 w-full sm:w-auto">
+                    <span class="text-sm font-semibold text-surface-600 dark:text-surface-400">Filtrar Carteira</span>
+                    <p-select [options]="carteiras" [(ngModel)]="carteiraSelecionada" optionLabel="nome" placeholder="Todas as Carteiras" [showClear]="true" (onChange)="carregarDados()" styleClass="w-full sm:w-60"></p-select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <ng-container *ngIf="!carregando && analyticsData; else loadingTpl">
+    <!-- Meta de Independência Financeira -->
+    <div class="col-12">
+        <div class="card mt-2">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-4">
+                <div class="mb-3 md:mb-0 text-center md:text-left">
+                    <h4 class="m-0 text-surface-900 dark:text-surface-0 font-bold"><i class="pi pi-flag-fill text-primary mr-2 text-xl"></i> Independência Financeira</h4>
+                    <p class="text-500 mb-0 mt-1">Progresso rumo ao seu objetivo mensal.</p>
+                </div>
+                <div class="text-center md:text-right">
+                    <span class="text-3xl font-bold text-primary">{{ analyticsData.metas.independenciaFinanceira.atualMensal | currency:'BRL' }}</span>
+                    <span class="text-500 font-medium text-lg"> / {{ analyticsData.metas.independenciaFinanceira.objetivoMensal | currency:'BRL' }} mês</span>
+                </div>
+            </div>
+            <p-progressbar [value]="analyticsData.metas.independenciaFinanceira.percentualConcluido"></p-progressbar>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="col-12 xl:col-6 pt-0">
+        <div class="card h-full">
+            <h5 class="font-bold text-lg mb-4 text-surface-900 dark:text-surface-0">Distribuição por Setor</h5>
+            <p-chart type="doughnut" [data]="dataSetores" [options]="optionsSetores"></p-chart>
+        </div>
+    </div>
+    <div class="col-12 xl:col-6 pt-0">
+        <div class="card h-full">
+            <h5 class="font-bold text-lg mb-4 text-surface-900 dark:text-surface-0">Histórico de Dividendos</h5>
+            <p-chart type="bar" [data]="dataHistorico" [options]="optionsHistorico"></p-chart>
+        </div>
+    </div>
+    </ng-container>
+</div>
+
+<ng-template #loadingTpl>
+    <div class="col-12 w-full">
+        <div class="flex flex-col items-center justify-center mt-12 p-8">
+            <i class="pi pi-spin pi-spinner text-primary text-6xl mb-6"></i>
+            <h2 class="text-2xl font-bold text-surface-900 dark:text-surface-0 mb-2">Carregando Relatórios...</h2>
+            <p class="text-surface-600 dark:text-surface-400 text-lg text-center">Analisando seus dados e montando os gráficos.</p>
+        </div>
+    </div>
+</ng-template>

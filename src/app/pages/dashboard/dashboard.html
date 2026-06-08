@@ -1,23 +1,34 @@
 <p-toast></p-toast>
+<p-confirmDialog [style]="{width: '450px'}"></p-confirmDialog>
 
 <div class="grid">
-    <div class="col-12">
-        <div class="card">
-            <div class="dashboard-header">
-                <div>
-                    <h2 class="m-0 font-bold">{{ saudacao }}</h2>
-                    <p class="text-500 mt-1 mb-0">Aqui está o resumo dos seus investimentos.</p>
-                </div>
-                <p-button label="Criar Nova Carteira" icon="pi pi-plus" (onClick)="abrirModal()"></p-button>
+    <!-- Header Principal -->
+    <div class="col-12 pb-2">
+        <div class="dashboard-header mb-0 mt-2">
+            <div>
+                <h2 class="m-0 font-bold text-surface-900 dark:text-surface-0">{{ saudacao }}</h2>
+                <p class="text-500 mt-1 mb-0">Aqui está o resumo dos seus investimentos.</p>
             </div>
+            <p-button label="Criar Nova Carteira" icon="pi pi-plus" (onClick)="abrirModal()"></p-button>
+        </div>
+    </div>
 
+    <!-- Widget de Estatísticas (As 4 caixas) -->
+    <div class="col-12 py-0">
+        <app-stats-widget [patrimonioTotal]="patrimonioTotal" [lucroPrejuizo]="lucroTotal" [totalAtivos]="totalAtivos" [dividendos]="dividendosTotal"></app-stats-widget>
+    </div>
+
+    <!-- Lista de Carteiras -->
+    <div class="col-12">
+        <div class="card mt-2">
+            <h4 class="mb-4 text-surface-900 dark:text-surface-0"><i class="pi pi-wallet text-primary mr-2"></i> Minhas Carteiras</h4>
             <!-- Voltando para a p-table que era usada antes -->
             <p-table [value]="carteiras" responsiveLayout="scroll">
                 <ng-template pTemplate="header">
                     <tr>
                         <th>Nome da Carteira</th>
                         <th>Descrição</th>
-                        <th style="width: 10rem">Ações</th>
+                        <th style="width: 15rem" class="text-center">Ações</th>
                     </tr>
                 </ng-template>
                 <ng-template pTemplate="body" let-carteira>
@@ -28,8 +39,10 @@
                         <td>
                             <span class="text-600">{{ carteira.descricao || 'Sem descrição' }}</span>
                         </td>
-                        <td>
-                            <a pButton label="Ver Detalhes" icon="pi pi-search" class="p-button-rounded" [routerLink]="['/carteira', carteira.id]"></a>
+                        <td class="flex justify-content-center gap-2">
+                            <a pButton icon="pi pi-search" class="p-button-rounded p-button-outlined" [routerLink]="['/carteira', carteira.id]" title="Ver Detalhes"></a>
+                            <button pButton icon="pi pi-pencil" class="p-button-rounded p-button-outlined p-button-warning" (click)="abrirModalEdicao(carteira)" title="Editar Carteira"></button>
+                            <button pButton icon="pi pi-trash" class="p-button-rounded p-button-outlined p-button-danger" (click)="confirmarExclusao(carteira)" title="Excluir Carteira"></button>
                         </td>
                     </tr>
                 </ng-template>
@@ -71,7 +84,7 @@
 </div>
 
 <!-- Modal para Nova Carteira -->
-<p-dialog header="Criar Nova Carteira" [(visible)]="mostrarModal" [modal]="true" [style]="{width: '450px'}">
+<p-dialog [header]="editando ? 'Editar Carteira' : 'Criar Nova Carteira'" [(visible)]="mostrarModal" [modal]="true" [style]="{width: '450px'}" [draggable]="false">
     <div class="p-fluid grid formgrid">
         <div class="field col-12">
             <label for="nome">Nome da Carteira</label>
@@ -84,6 +97,6 @@
     </div>
     <ng-template pTemplate="footer">
         <p-button label="Cancelar" icon="pi pi-times" styleClass="p-button-text" (onClick)="mostrarModal=false"></p-button>
-        <p-button label="Salvar" icon="pi pi-check" (onClick)="salvarNovaCarteira()" [loading]="carregando"></p-button>
+        <p-button label="Salvar" icon="pi pi-check" (onClick)="salvarCarteira()" [loading]="carregando"></p-button>
     </ng-template>
 </p-dialog>
