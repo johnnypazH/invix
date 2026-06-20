@@ -24,9 +24,22 @@
     }
 }
 
+/* Wrapper para centralizar a carteira e evitar que estique demais em telas muito grandes */
+.carteira-wrapper {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
 /* Espaçamento geral da página */
 .carteira-grid {
     margin-top: 1rem;
+    width: 100%;
+    max-width: 1900px;
+    padding: 0 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
 }
 
 /* Estilos do Cabeçalho da Carteira (onde fica o Dropdown e o botão Novo Aporte) */

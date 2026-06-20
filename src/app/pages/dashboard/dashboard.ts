@@ -8,6 +8,7 @@ import { ButtonModule } from 'primeng/button';
 import { TableModule } from 'primeng/table';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
+import { InputNumberModule } from 'primeng/inputnumber';
 import { TextareaModule } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmationService, MessageService } from 'primeng/api';
@@ -28,6 +29,7 @@ import { AuthService } from '../../services/auth.service';
     TableModule,
     DialogModule,
     InputTextModule,
+    InputNumberModule,
     TextareaModule,
     ToastModule,
     ConfirmDialogModule,
@@ -43,7 +45,7 @@ export class Dashboard implements OnInit {
   saudacao: string = 'Olá!';
   feedDividendos: any[] = [];
   patrimonioTotal: number = 0;
-  lucroTotal: number = 0;
+  ganhoTotal: number = 0;
   totalAtivos: number = 0;
   dividendosTotal: number = 0;
   
@@ -51,7 +53,7 @@ export class Dashboard implements OnInit {
   carregando = false;
   editando = false;
   carteiraIdEmEdicao: string | null = null;
-  novaCarteira: { nome: string; descricao?: string } = { nome: '' };
+  novaCarteira: { nome: string; descricao?: string; metaMensal?: number } = { nome: '' };
 
   constructor(
     private carteiraService: CarteiraService,
@@ -73,7 +75,7 @@ export class Dashboard implements OnInit {
         
         // Recebendo os superpoderes do backend
         this.patrimonioTotal = dadosBff.patrimonioTotal || 0;
-        this.lucroTotal = dadosBff.lucroTotal || 0;
+        this.ganhoTotal = dadosBff.ganhoTotal ?? dadosBff.lucroTotal ?? 0;
         this.totalAtivos = dadosBff.totalAtivos || this.carteiras.reduce((acc, c: any) => acc + (c.assets ? c.assets.length : 0), 0);
         this.dividendosTotal = dadosBff.dividendosTotal || 0;
 
@@ -87,14 +89,18 @@ export class Dashboard implements OnInit {
   }
 
   abrirModal() {
-    this.novaCarteira = { nome: '', descricao: '' };
+    this.novaCarteira = { nome: '', descricao: '', metaMensal: undefined };
     this.editando = false;
     this.carteiraIdEmEdicao = null;
     this.mostrarModal = true;
   }
 
   abrirModalEdicao(carteira: Carteira) {
-    this.novaCarteira = { nome: carteira.nome, descricao: carteira.descricao };
+    this.novaCarteira = {
+      nome: carteira.nome,
+      descricao: carteira.descricao,
+      metaMensal: carteira.metaMensal
+    };
     this.editando = true;
     this.carteiraIdEmEdicao = carteira.id || null;
     this.mostrarModal = true;

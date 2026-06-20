@@ -28,11 +28,11 @@
                     <p class="text-500 mb-0 mt-1">Progresso rumo ao seu objetivo mensal.</p>
                 </div>
                 <div class="text-center md:text-right">
-                    <span class="text-3xl font-bold text-primary">{{ analyticsData.metas.independenciaFinanceira.atualMensal | currency:'BRL' }}</span>
-                    <span class="text-500 font-medium text-lg"> / {{ analyticsData.metas.independenciaFinanceira.objetivoMensal | currency:'BRL' }} mês</span>
+                    <span class="text-3xl font-bold text-primary">{{ (analyticsData?.metas?.independenciaFinanceira?.atualMensal || 0) | currency:'BRL' }}</span>
+                    <span class="text-500 font-medium text-lg"> / {{ (analyticsData?.metas?.independenciaFinanceira?.objetivoMensal || 0) | currency:'BRL' }} mês</span>
                 </div>
             </div>
-            <p-progressbar [value]="analyticsData.metas.independenciaFinanceira.percentualConcluido"></p-progressbar>
+            <p-progressbar [value]="analyticsData?.metas?.independenciaFinanceira?.percentualConcluido || 0"></p-progressbar>
         </div>
     </div>
 

@@ -8,6 +8,18 @@ import { FormsModule } from '@angular/forms';
 import { SelectModule } from 'primeng/select';
 import { InputNumberModule } from 'primeng/inputnumber';
 
+export interface AnalyticsData {
+    metas: {
+        independenciaFinanceira: {
+            atualMensal: number;
+            objetivoMensal: number;
+            percentualConcluido: number;
+        }
+    };
+    distribuicaoPorSetor: Array<{ setor: string; valorTotal: number }>;
+    historicoDividendosMes: Array<{ mes: string; valor: number }>;
+}
+
 @Component({
     selector: 'app-relatorios',
     standalone: true,
@@ -17,7 +29,7 @@ import { InputNumberModule } from 'primeng/inputnumber';
 })
 export class Relatorios implements OnInit {
     
-    analyticsData: any = null;
+    analyticsData: AnalyticsData | null = null;
     carregando: boolean = true;
     objetivoMensal: number = 0;
 
@@ -43,7 +55,7 @@ export class Relatorios implements OnInit {
     carregarCarteiras() {
         this.carteiraService.getDashboard().subscribe({
             next: (dados) => {
-                this.carteiras = dados.carteiras || [];
+                this.carteiras = Array.isArray(dados?.carteiras) ? dados.carteiras : [];
             },
             error: (err) => console.error('Erro ao carregar carteiras', err)
         });
@@ -54,10 +66,13 @@ export class Relatorios implements OnInit {
         const walletId = this.carteiraSelecionada?.id;
         this.carteiraService.getAnalytics(undefined, walletId).subscribe({
             next: (data) => {
-                this.analyticsData = data;
-                if (data.metas?.independenciaFinanceira?.objetivoMensal) {
-                    this.objetivoMensal = data.metas.independenciaFinanceira.objetivoMensal;
+                const analytics = data?.analytics ?? data;
+                this.analyticsData = analytics;
+
+                if (analytics?.metas?.independenciaFinanceira?.objetivoMensal != null) {
+                    this.objetivoMensal = analytics.metas.independenciaFinanceira.objetivoMensal;
                 }
+
                 this.initCharts();
                 this.carregando = false;
             },
@@ -92,10 +107,17 @@ export class Relatorios implements OnInit {
         const bgColors = ['#3B82F6', '#10B981', '#F59E0B', '#EC4899', '#8B5CF6'];
         const hoverBgColors = ['#2563EB', '#059669', '#D97706', '#DB2777', '#7C3AED'];
 
+        const setores = Array.isArray(this.analyticsData.distribuicaoPorSetor)
+            ? this.analyticsData.distribuicaoPorSetor
+            : [];
+        const historico = Array.isArray(this.analyticsData.historicoDividendosMes)
+            ? this.analyticsData.historicoDividendosMes
+            : [];
+
         this.dataSetores = {
-            labels: this.analyticsData.distribuicaoPorSetor.map((s: any) => s.setor),
+            labels: setores.map((s) => s?.setor ?? 'Sem setor'),
             datasets: [{
-                data: this.analyticsData.distribuicaoPorSetor.map((s: any) => s.valorTotal),
+                data: setores.map((s) => Number(s?.valorTotal) || 0),
                 backgroundColor: bgColors,
                 hoverBackgroundColor: hoverBgColors
             }]
@@ -103,10 +125,10 @@ export class Relatorios implements OnInit {
         this.optionsSetores = { plugins: { legend: { labels: { color: textColor, usePointStyle: true } } } };
 
         this.dataHistorico = {
-            labels: this.analyticsData.historicoDividendosMes.map((h: any) => h.mes),
+            labels: historico.map((h) => h?.mes ?? '-'),
             datasets: [{
                 label: 'Dividendos Recebidos (R$)',
-                data: this.analyticsData.historicoDividendosMes.map((h: any) => h.valor),
+                data: historico.map((h) => Number(h?.valor) || 0),
                 backgroundColor: '#10B981',
                 borderRadius: 4
             }]

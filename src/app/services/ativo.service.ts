@@ -26,33 +26,40 @@ export class AtivoService {
 
   // Busca os ativos de uma carteira específica
   getAtivos(carteiraId: string): Observable<Ativo[]> {
-    // O backend agora responde em /wallets/:id e retorna o objeto inteiro da carteira
-    // O operador 'map' pega apenas a parte dos 'assets' para a tabela exibir
     return this.http.get<any>(`${this.baseUrl}/wallets/${carteiraId}`).pipe(
-      map(carteira => {
-        console.log('Resposta bruta do backend (carteira completa):', carteira);
-        return carteira.assets || [];
+      map((response) => {
+        const payload = response?.data ?? response;
+        console.log('Resposta bruta do backend (carteira completa):', payload);
+        return payload?.assets || payload?.wallet?.assets || [];
       })
     );
   }
 
   // Adiciona um ativo a uma carteira específica
   adicionarAtivo(carteiraId: string, ativo: Partial<Ativo>): Observable<Ativo> {
-    // O backend novo usa a rota /wallets/:id/assets e devolve { message, asset, assets }
     return this.http.post<any>(`${this.baseUrl}/wallets/${carteiraId}/assets`, ativo).pipe(
-      map(res => res.asset || ativo)
+      map((response) => {
+        const payload = response?.data ?? response;
+        return payload?.asset || payload?.data || ativo;
+      })
     );
   }
 
   // Remove um ativo de uma carteira específica
   removerAtivo(carteiraId: string, ticker: string): Observable<any> {
-    return this.http.delete<any>(`${this.baseUrl}/wallets/${carteiraId}/assets/${ticker}`);
+    return this.http.delete<any>(`${this.baseUrl}/wallets/${carteiraId}/assets/${ticker}`).pipe(
+      map((response) => response?.data ?? response)
+    );
   }
 
   // Busca cotações reais na API pública da Brapi
   buscarCotacaoBrapi(tickers: string): Observable<any> {
     // Requisição pública sem token por questões de segurança.
-    // O ideal futuramente é o Angular chamar o seu próprio Back-end (BFF) e o Back-end chamar a Brapi com o Token seguro.
-    return this.http.get<any>(`https://brapi.dev/api/quote/${tickers}`);
+    
+    // DICA: Crie uma conta gratuita em brapi.dev e cole o seu token aqui dentro das aspas:
+    const brapiToken = ''; 
+    
+    const url = brapiToken ? `https://brapi.dev/api/quote/${tickers}?token=${brapiToken}` : `https://brapi.dev/api/quote/${tickers}`;
+    return this.http.get<any>(url);
   }
 }

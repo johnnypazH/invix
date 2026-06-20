@@ -3,12 +3,14 @@
 
 <ng-container *ngIf="carteiraIdSelecionada; else noWallet">
 
+<!-- Container para travar a largura em telas muito grandes e centralizar -->
+<div class="carteira-wrapper">
 <div class="grid carteira-grid">
 
-    <!-- Tabela de Ativos -->
+    <!-- TOPO: Tabela de Ativos (Card Visão da Carteira) -->
     <div class="col-12">
         <div class="card">
-            <div class="carteira-header">
+            <div class="carteira-header mb-4">
                 <div class="carteira-title-group">
                     <h2 class="carteira-title text-surface-900 dark:text-surface-0">Visão da Carteira</h2>
                     <p-select [options]="minhasCarteiras" 
@@ -21,6 +23,7 @@
                 </div>
                 <p-button label="Novo Aporte" icon="pi pi-plus" (onClick)="abrirModal()"></p-button>
             </div>
+
             <p-table [value]="ativos" [tableStyle]="{'min-width': '50rem'}" responsiveLayout="scroll">
                 <ng-template pTemplate="header">
                     <tr>
@@ -61,27 +64,18 @@
         </div>
     </div>
 
-    <!-- Gráficos (Movidos para baixo da Tabela) -->
-    <div class="col-12 xl:col-6">
+    <!-- INFERIOR: Gráfico de Composição -->
+    <div class="col-12 lg:col-6 xl:col-4">
         <div class="card h-full flex flex-col">
-            <h5>Composição por Setor</h5>
-            <div class="flex-grow flex items-center justify-center p-4 md:p-6 w-full">
+            <h5 class="font-bold">Composição por Setor</h5>
+            <div class="flex-grow flex items-center justify-center p-4 w-full">
                 <div style="width: 100%; max-width: 22rem;">
                     <p-chart type="pie" [data]="dataPizza" [options]="optionsPizza"></p-chart>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-12 xl:col-6">
-        <div class="card h-full flex flex-col">
-            <h5>Projeção de Patrimônio</h5>
-            <div class="flex-grow flex items-center justify-center p-4 md:p-6 w-full">
-                <div style="width: 100%;">
-                    <p-chart type="line" [data]="dataProjecao" [options]="optionsProjecao"></p-chart>
-                </div>
-            </div>
-        </div>
-    </div>
+</div>
 </div>
 
 <!-- Modal para Novo Aporte -->

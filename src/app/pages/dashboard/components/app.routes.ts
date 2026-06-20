@@ -1,40 +1,26 @@
 import { Routes } from '@angular/router';
-import { AppLayout } from './app/layout/component/app.layout';
-
-// Seus componentes (Verifique se o caminho da importação está correto conforme suas pastas)
-import { Dashboard } from './app/pages/dashboard/dashboard'; // O Sakai costuma exportar como 'Dashboard'
-import { MinhaCarteira } from './app/pages/minha-carteira/minha-carteira'; // Caminho atualizado
-import { NovoAporte } from './app/pages/novo-aporte/novo-aporte'; // Novo componente
-import { Relatorios } from './app/pages/relatorios/relatorios'; 
-
-import { Notfound } from './app/pages/notfound/notfound';
-import { authGuard } from './app/pages/auth/auth.guard';
+import { AppLayout } from '../../../layout/component/app.layout';
+import { Dashboard } from '../../dashboard/dashboard';
+import { MinhaCarteira } from '../../minha-carteira/minha-carteira';
+import { NovoAporte } from '../../novo-aporte/novo-aporte';
+import { Relatorios } from './relatorios';
+import { Notfound } from '../../notfound/notfound';
+import { authGuard } from '../../auth/auth.guard';
 
 export const appRoutes: Routes = [
     {
         path: '',
         component: AppLayout,
-        canActivate: [authGuard], // ← O SEGURANÇA BARRANDO A ENTRADA!
+        canActivate: [authGuard],
         children: [
-            // Rota raiz (Dashboard)
             { path: '', component: Dashboard },
-
-            // Rota da sua carteira, agora com ID (ex: /carteira/1)
             { path: 'carteira/:id', component: MinhaCarteira },
-
-            // Rota genérica da carteira sem ID (acessada pelo menu lateral)
             { path: 'carteira', component: MinhaCarteira },
-
-            // Rota para Novo Aporte
             { path: 'aporte', component: NovoAporte },
-            
-            // Rota para a aba de Relatórios e Metas
-            { path: 'relatorios', component: Relatorios },
+            { path: 'relatorios', component: Relatorios }
         ]
     },
-    // Mantendo as rotas de autenticação para o futuro
-    { path: 'auth', loadChildren: () => import('./app/pages/auth/auth.routes') },
-    // A página Notfound é útil para rotas que não existem
+    { path: 'auth', loadChildren: () => import('../../auth/auth.routes') },
     { path: 'notfound', component: Notfound },
     { path: '**', redirectTo: '/notfound' }
 ];

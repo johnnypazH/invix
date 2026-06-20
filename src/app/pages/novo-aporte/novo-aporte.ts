@@ -8,6 +8,7 @@ import { TableModule } from 'primeng/table'; // Para a lista de ações
 import { InputNumberModule } from 'primeng/inputnumber';
 import { SelectModule } from 'primeng/select';
 import { DatePickerModule } from 'primeng/datepicker';
+import { TextareaModule } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { finalize } from 'rxjs';
@@ -19,7 +20,7 @@ import { AuthService } from '../../services/auth.service';
 @Component({
     selector: 'app-novo-aporte',
     standalone: true,
-    imports: [CommonModule, ButtonModule, DialogModule, InputTextModule, FormsModule, TableModule, InputNumberModule, SelectModule, DatePickerModule, ToastModule],
+    imports: [CommonModule, ButtonModule, DialogModule, InputTextModule, FormsModule, TableModule, InputNumberModule, SelectModule, DatePickerModule, TextareaModule, ToastModule],
     providers: [MessageService],
     styleUrl: './novo-aporte.scss',
     templateUrl: './novo-aporte.html'
@@ -31,6 +32,8 @@ export class NovoAporte implements OnInit {
 
     mostrarModalNovaCarteira: boolean = false;
     novaCarteiraNome: string = '';
+    novaCarteiraDescricao: string = '';
+    novaCarteiraMetaMensal: number | null = null;
 
     carteiraSelecionada: Carteira | null = null;
     carregandoAporte: boolean = false;
@@ -57,47 +60,41 @@ export class NovoAporte implements OnInit {
             error: (err) => console.error('Erro ao carregar carteiras:', err)
         });
 
-        // Busca ações REAIS da Brapi para exibir na tabela de oportunidades
-        this.carregarAtivosPopulares();
-    }
-
-    carregarAtivosPopulares() {
-        const tickersTop = 'PETR4,VALE3,ITUB4,WEGE3,BBAS3';
-        this.ativoService.buscarCotacaoBrapi(tickersTop).subscribe({
-            next: (response) => {
-                if (response.results) {
-                    this.ativosDisponiveis = response.results.map((acao: any, index: number) => ({
-                        id: index,
-                        ticker: acao.symbol,
-                        nome: acao.shortName || acao.longName,
-                        setor: acao.sector || '-', // O Back-end vai buscar o oficial depois
-                        quantidade: 0,
-                        precoMedio: 0,
-                        precoAtual: acao.regularMarketPrice,
-                        dividendYield: 0
-                    }));
-                }
-            },
-            error: (err) => console.error('Erro ao buscar Brapi:', err)
-        });
+        // A lista de ativos da tela agora deve vir da API própria do projeto.
+        // Como não temos um endpoint específico para isso ainda, mantemos a tabela vazia até o back fornecer o contrato.
+        this.ativosDisponiveis = [];
     }
 
     abrirModalNovaCarteira() {
-        this.novaCarteiraNome = ''; // Limpa o campo
+        this.novaCarteiraNome = '';
+        this.novaCarteiraDescricao = '';
+        this.novaCarteiraMetaMensal = null;
         this.mostrarModalNovaCarteira = true;
     }
 
     salvarNovaCarteira() {
-        if (this.novaCarteiraNome.trim()) {
-            // Chama o backend real para criar a carteira
-            this.carteiraService.adicionarCarteira({ nome: this.novaCarteiraNome.trim() }).subscribe({
-                next: (carteiraAdicionada) => {
-                    this.minhasCarteiras.push(carteiraAdicionada);
-                    this.mostrarModalNovaCarteira = false;
-                },
-                error: (err) => console.error('Erro ao adicionar carteira:', err)
-            });
+        if (!this.novaCarteiraNome.trim()) {
+            this.messageService.add({ severity: 'warn', summary: 'Atenção', detail: 'O nome da carteira é obrigatório.' });
+            return;
         }
+
+        const payload = {
+            nome: this.novaCarteiraNome.trim(),
+            descricao: this.novaCarteiraDescricao.trim() || undefined,
+            metaMensal: this.novaCarteiraMetaMensal ?? undefined
+        };
+
+        this.carteiraService.adicionarCarteira(payload).subscribe({
+            next: (carteiraAdicionada) => {
+                this.minhasCarteiras.push(carteiraAdicionada);
+                this.mostrarModalNovaCarteira = false;
+                this.messageService.add({ severity: 'success', summary: 'Sucesso', detail: 'Carteira criada com sucesso!' });
+            },
+            error: (err) => {
+                console.error('Erro ao adicionar carteira:', err);
+                this.messageService.add({ severity: 'error', summary: 'Erro', detail: 'Não foi possível criar a carteira.' });
+            }
+        });
     }
 
     abrirModalAdicionarAtivo() {
@@ -109,17 +106,17 @@ export class NovoAporte implements OnInit {
     }
 
     selecionarAtivoParaAporte(ativo: Ativo) {
-        // Preenche o modal com os dados do ativo selecionado
-        this.ativoParaAporte = { ...ativo, quantidade: 0, precoMedio: 0, dataCompra: undefined }; // Zera quantidade e preço médio para novo aporte
-        this.carteiraSelecionada = null; // Reseta a carteira selecionada
+        // Mantém o fluxo de aporte, mas agora sem depender da lista externa da Brapi.
+        this.ativoParaAporte = { ...ativo, quantidade: 0, precoMedio: 0, dataCompra: undefined };
+        this.carteiraSelecionada = null;
         this.mostrarModalAdicionarAtivo = true;
     }
 
     buscarDetalhesAtivo() {
         if (!this.ativoParaAporte.ticker) return;
         
-        // Força o Ticker a ficar maiúsculo no formulário e para a chamada da API
-        this.ativoParaAporte.ticker = this.ativoParaAporte.ticker.toUpperCase();
+        // Força o Ticker a ficar maiúsculo e corta espaços em branco acidentais
+        this.ativoParaAporte.ticker = this.ativoParaAporte.ticker.toUpperCase().trim();
         this.buscandoAtivo = true;
         this.ativoService.buscarCotacaoBrapi(this.ativoParaAporte.ticker).subscribe({
             next: (response) => {
@@ -128,7 +125,7 @@ export class NovoAporte implements OnInit {
                     this.ativoParaAporte.nome = acao.shortName || acao.longName;
                     this.ativoParaAporte.precoAtual = acao.regularMarketPrice;
                     // Sugere o preço atual do mercado como o preço que o usuário pagou
-                    if (this.ativoParaAporte.precoMedio === 0) {
+                    if (!this.ativoParaAporte.precoMedio || this.ativoParaAporte.precoMedio === 0) {
                         this.ativoParaAporte.precoMedio = acao.regularMarketPrice; 
                     }
                     this.messageService.add({ severity: 'info', summary: 'Ativo Encontrado', detail: this.ativoParaAporte.nome });

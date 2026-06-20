@@ -11,9 +11,9 @@ import { InputNumberModule } from 'primeng/inputnumber';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { SelectModule } from 'primeng/select';
-import { AtivoService, Ativo } from '../../services/ativo.service'; // Atualizado para AtivoService
-import { LayoutService } from '../../layout/service/layout.service';
-import { CarteiraService, Carteira } from '../../services/carteira.service';
+import { AtivoService, Ativo } from './ativo.service';
+import { LayoutService } from '../layout/service/layout.service';
+import { CarteiraService, Carteira } from './carteira.service';
 import { Subscription, finalize } from 'rxjs';
 
 @Component({
@@ -55,7 +55,7 @@ export class MinhaCarteira implements OnInit, OnDestroy {
   ngOnInit() {
     // Primeiro, busca as carteiras para preencher o Dropdown no topo da página
     this.carteiraService.getDashboard().subscribe({
-      next: (dados) => {
+      next: (dados: any) => {
         this.minhasCarteiras = dados.carteiras || [];
 
         // Depois, fica "escutando" as mudanças no parâmetro 'id' da rota
@@ -74,17 +74,17 @@ export class MinhaCarteira implements OnInit, OnDestroy {
             
             this.ativos = [];
             this.ativoService.getAtivos(this.carteiraId).subscribe({
-              next: (dadosAtivos) => {
+              next: (dadosAtivos: Ativo[]) => {
                   console.log('Ativos extraídos e enviados para a tabela:', dadosAtivos);
                   this.ativos = dadosAtivos;
                   this.initGraficos();
               },
-              error: (err) => console.error('Erro na requisição da carteira:', err)
+              error: (err: unknown) => console.error('Erro na requisição da carteira:', err)
             });
           }
         });
       },
-      error: (err) => console.error('Erro ao buscar carteiras', err)
+      error: (err: unknown) => console.error('Erro ao buscar carteiras', err)
     });
   }
 

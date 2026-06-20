@@ -25,27 +25,27 @@ import { CommonModule } from '@angular/common';
             </div>
         </div>
 
-        <!-- Card 2: Lucro/Prejuízo -->
+        <!-- Card 2: Ganho Total -->
         <div class="stats-item">
             <div class="card mb-0 h-full">
                 <div class="flex justify-between mb-4">
                     <div>
-                        <span class="block text-muted-color font-medium mb-4">Lucro / Prejuízo</span>
-                        <div class="text-surface-900 dark:text-surface-0 font-medium text-xl" [class.text-green-500]="lucroPrejuizo > 0" [class.text-red-500]="lucroPrejuizo < 0">
-                            {{ lucroPrejuizo | currency:'BRL' }}
+                        <span class="block text-muted-color font-medium mb-4">Ganho Total</span>
+                        <div class="text-surface-900 dark:text-surface-0 font-medium text-xl" [class.text-green-500]="ganhoTotal > 0" [class.text-red-500]="ganhoTotal < 0">
+                            {{ ganhoTotal | currency:'BRL' }}
                         </div>
                     </div>
                     <div class="flex items-center justify-center rounded-border" style="width: 2.5rem; height: 2.5rem"
                          [ngClass]="{
-                            'bg-green-100 dark:bg-green-400/10': lucroPrejuizo > 0,
-                            'bg-red-100 dark:bg-red-400/10': lucroPrejuizo < 0,
-                            'bg-orange-100 dark:bg-orange-400/10': lucroPrejuizo === 0
+                            'bg-green-100 dark:bg-green-400/10': ganhoTotal > 0,
+                            'bg-red-100 dark:bg-red-400/10': ganhoTotal < 0,
+                            'bg-orange-100 dark:bg-orange-400/10': ganhoTotal === 0
                          }">
                         <i class="pi pi-chart-line text-xl!" 
-                           [ngClass]="{'text-green-500': lucroPrejuizo > 0, 'text-red-500': lucroPrejuizo < 0, 'text-orange-500': lucroPrejuizo === 0}"></i>
+                           [ngClass]="{'text-green-500': ganhoTotal > 0, 'text-red-500': ganhoTotal < 0, 'text-orange-500': ganhoTotal === 0}"></i>
                     </div>
                 </div>
-                <span class="text-muted-color">Rentabilidade total</span>
+                <span class="text-muted-color">Resultado acumulado</span>
             </div>
         </div>
 
@@ -83,7 +83,7 @@ import { CommonModule } from '@angular/common';
 })
 export class StatsWidget {
     @Input() patrimonioTotal: number = 0;
-    @Input() lucroPrejuizo: number = 0;
+    @Input() ganhoTotal: number = 0;
     @Input() totalAtivos: number = 0;
     @Input() dividendos: number = 0;
 }

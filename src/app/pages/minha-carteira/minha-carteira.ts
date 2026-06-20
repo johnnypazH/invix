@@ -33,6 +33,7 @@ export class MinhaCarteira implements OnInit, OnDestroy {
   // Variáveis dos Gráficos
   dataPizza: any;
   optionsPizza: any;
+  composicaoBackend: any[] = [];
   dataProjecao: any;
   optionsProjecao: any;
   mostrarModal: boolean = false; // Controla se o modal aparece ou não
@@ -75,18 +76,26 @@ export class MinhaCarteira implements OnInit, OnDestroy {
             this.carteiraSelecionada = this.minhasCarteiras.find((c) => c.id === this.carteiraId) || null;
             
             this.ativos = [];
-            this.ativoService.getAtivos(this.carteiraId).subscribe({
-              next: (dadosAtivos) => {
-                  console.log('Ativos extraídos e enviados para a tabela:', dadosAtivos);
-                  this.ativos = dadosAtivos;
-                  this.initGraficos();
-              },
-              error: (err) => console.error('Erro na requisição da carteira:', err)
-            });
+            this.carregarDadosCarteira(this.carteiraId);
           }
         });
       },
       error: (err) => console.error('Erro ao buscar carteiras', err)
+    });
+  }
+
+  carregarDadosCarteira(id: string) {
+    this.carteiraService.getDetalhes(id).subscribe({
+        next: (dadosCarteira) => {
+            console.log('Carteira completa recebida do BFF:', dadosCarteira);
+
+            const payload = dadosCarteira?.wallet ?? dadosCarteira?.carteira ?? dadosCarteira?.result?.wallet ?? dadosCarteira;
+            this.ativos = payload?.assets || dadosCarteira?.assets || payload?.itens || [];
+            this.composicaoBackend = payload?.composicaoPorSetor || dadosCarteira?.composicaoPorSetor || [];
+
+            this.initGraficos();
+        },
+        error: (err) => console.error('Erro na requisição da carteira:', err)
     });
   }
 
@@ -107,8 +116,8 @@ export class MinhaCarteira implements OnInit, OnDestroy {
   buscarDetalhesAtivo() {
     if (!this.novoAtivo.ticker) return;
     
-    // Força o Ticker a ficar maiúsculo no formulário e para a chamada da API
-    this.novoAtivo.ticker = this.novoAtivo.ticker.toUpperCase();
+    // Força o Ticker a ficar maiúsculo e corta espaços em branco acidentais
+    this.novoAtivo.ticker = this.novoAtivo.ticker.toUpperCase().trim();
     this.buscandoAtivo = true;
     this.ativoService.buscarCotacaoBrapi(this.novoAtivo.ticker).subscribe({
         next: (response) => {
@@ -184,23 +193,33 @@ export class MinhaCarteira implements OnInit, OnDestroy {
     const hoverBackgroundColors = ['#2563EB', '#D97706', '#059669', '#DB2777', '#7C3AED']; // Versões mais escuras
 
     // --- 1. Gráfico de Pizza ---
-    const setorMap = new Map<string, number>();
-    this.ativos.forEach(ativo => {
-        const total = ativo.precoAtual * ativo.quantidade;
-        const atual = setorMap.get(ativo.setor) || 0;
-        setorMap.set(ativo.setor, atual + total);
-    });
-
-    this.dataPizza = {
-        labels: Array.from(setorMap.keys()),
-        datasets: [
-            {
+    if (this.composicaoBackend && this.composicaoBackend.length > 0) {
+        // Usa os dados perfeitamente calculados pelo Back-end!
+        this.dataPizza = {
+            labels: this.composicaoBackend.map((s: any) => `${s.setor} (${s.percentual}%)`),
+            datasets: [{
+                data: this.composicaoBackend.map((s: any) => s.valorTotal),
+                backgroundColor: backgroundColors,
+                hoverBackgroundColor: hoverBackgroundColors
+            }]
+        };
+    } else {
+        // Fallback local caso o back-end não mande a composição
+        const setorMap = new Map<string, number>();
+        this.ativos.forEach(ativo => {
+            const total = ativo.precoAtual * ativo.quantidade;
+            const atual = setorMap.get(ativo.setor || 'Outros') || 0;
+            setorMap.set(ativo.setor || 'Outros', atual + total);
+        });
+        this.dataPizza = {
+            labels: Array.from(setorMap.keys()),
+            datasets: [{
                 data: Array.from(setorMap.values()),
                 backgroundColor: backgroundColors,
                 hoverBackgroundColor: hoverBackgroundColors
-            }
-        ]
-    };
+            }]
+        };
+    }
 
     this.optionsPizza = {
         plugins: {
@@ -259,11 +278,9 @@ export class MinhaCarteira implements OnInit, OnDestroy {
     if (confirm(`Tem certeza que deseja remover ${ativo.ticker} da sua carteira?`)) {
       this.ativoService.removerAtivo(this.carteiraId, ativo.ticker).subscribe({
         next: () => {
-          // Remove o ativo da lista localmente
-          this.ativos = this.ativos.filter(a => a.ticker !== ativo.ticker);
-          // Recalcula os gráficos com a nova lista
-          this.initGraficos();
           this.messageService.add({ severity: 'success', summary: 'Sucesso', detail: 'Ativo removido da carteira!' });
+          // Busca a carteira atualizada do Back-end
+          this.carregarDadosCarteira(this.carteiraId);
         },
         error: (err) => {
           console.error('Erro ao remover ativo:', err);
