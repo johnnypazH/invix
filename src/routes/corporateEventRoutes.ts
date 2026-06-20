@@ -4,8 +4,6 @@ import { CorporateEvent } from '../models/CorporateEvent';
 
 const router = Router();
 
-// Rota GET /api/corporate-events
-// Aceita um filtro opcional pela URL, ex: /api/corporate-events?ticker=ITSA4
 router.get('/', async (req: Request, res: Response) => {
   try {
     const { ticker } = req.query;
@@ -17,21 +15,28 @@ router.get('/', async (req: Request, res: Response) => {
     }
 
     const events = await repository.find({
-        where: whereClause,
-        order: { last_date_prior: 'DESC' } // Ordena do mais recente para o mais antigo
+      where: whereClause,
+      order: { last_date_prior: 'DESC' }
     });
 
-    // Padrão BFF: Traduzindo as colunas do banco de dados para a interface do Angular
     const bffResponse = events.map(evento => ({
-        ativo: evento.ticker,
-        tipo: evento.type, // "DESDOBRAMENTO", "BONIFICACAO", etc.
-        fator: evento.factor,
-        dataCom: evento.last_date_prior
+      ativo: evento.ticker,
+      tipo: evento.type,
+      fator: evento.factor,
+      dataCom: evento.last_date_prior
     }));
 
-    res.json(bffResponse);
+    return res.status(200).json({
+      success: true,
+      data: bffResponse,
+      message: 'Eventos corporativos recuperados com sucesso.'
+    });
   } catch (err: any) {
-    res.status(500).json({ error: 'Erro interno ao buscar eventos corporativos', details: err.message });
+    return res.status(500).json({
+      success: false,
+      message: 'Erro interno ao buscar eventos corporativos.',
+      details: err.message
+    });
   }
 });
 

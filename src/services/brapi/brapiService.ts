@@ -25,19 +25,36 @@ export async function fetchAndSaveDividends(ticker: string) {
       throw new Error('O token da API Brapi não está configurado no arquivo .env');
     }
 
-    console.log(`Buscando dividendos e eventos corporativos de ${ticker} na Brapi...`);
+    console.log(`Buscando informações da empresa ${ticker} na Brapi...`);
     
-    const url = `https://brapi.dev/api/quote/${ticker}?dividends=true&token=${BRAPI_TOKEN}`;
-    const response = await axios.get(url);
+    // Rota 'list' é a mais confiável para buscar Nome real e Setor na Brapi!
+    const listUrl = `https://brapi.dev/api/quote/list?search=${ticker}&token=${BRAPI_TOKEN}`;
+    const listResponse = await axios.get(listUrl);
     
-    const data = response.data;
+    let nomeEmpresa = ticker;
+    let setorEmpresa = 'Outros';
+
+    if (listResponse.data.stocks && listResponse.data.stocks.length > 0) {
+      // Procura a ação exata caso a busca traga mais de uma (ex: PETR4 e PETR4F)
+      const stockInfo = listResponse.data.stocks.find((s: any) => s.stock === ticker) || listResponse.data.stocks[0];
+      nomeEmpresa = stockInfo.name || stockInfo.stock || ticker;
+      setorEmpresa = stockInfo.sector || 'Outros';
+    }
+
+    console.log(`Buscando dividendos e eventos de ${ticker}...`);
+    
+    const quoteUrl = `https://brapi.dev/api/quote/${ticker}?dividends=true&token=${BRAPI_TOKEN}`;
+    const quoteResponse = await axios.get(quoteUrl);
+    
+    const data = quoteResponse.data;
     
     if (!data.results || data.results.length === 0) {
       console.log(`Nenhum dado encontrado para o ticker ${ticker} na Brapi.`);
       return;
     }
 
-    const dividendsData = data.results[0].dividendsData;
+    const quoteData = data.results[0];
+    const dividendsData = quoteData.dividendsData;
 
     if (!dividendsData) {
       console.log('Nenhum dado de proventos encontrado na resposta.');
@@ -58,6 +75,8 @@ export async function fetchAndSaveDividends(ticker: string) {
       // você pode mapear os atributos para português lá no controller se quiser.
       const formattedDividends = cashDividends.map((d: BrapiCashDividend) => ({
         ticker: ticker,
+        name: nomeEmpresa,
+        sector: setorEmpresa,
         amount: d.rate,
         type: d.label,
         payment_date: d.paymentDate ? d.paymentDate.split('T')[0] : null,
@@ -93,6 +112,8 @@ export async function fetchAndSaveDividends(ticker: string) {
 
       const formattedEvents = stockDividends.map((d: BrapiStockDividend) => ({
         ticker: ticker,
+        name: nomeEmpresa,
+        sector: setorEmpresa,
         type: d.label, // DESDOBRAMENTO, GRUPAMENTO, BONIFICACAO
         factor: d.factor,
         last_date_prior: d.lastDatePrior ? d.lastDatePrior.split('T')[0] : null

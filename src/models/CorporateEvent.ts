@@ -8,6 +8,12 @@ export class CorporateEvent {
     @Column()
     ticker!: string; // Ex: ITSA4
 
+    @Column({ nullable: true })
+    name?: string; // Ex: Itausa
+
+    @Column({ nullable: true })
+    sector?: string; // Ex: Financeiro
+
     @Column()
     type!: string; // Ex: DESDOBRAMENTO, BONIFICACAO
 

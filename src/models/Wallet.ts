@@ -23,6 +23,9 @@ export class Wallet {
     @Column({ nullable: true })
     description?: string; // Ex: "Focada em dividendos mensais"
 
+    @Column({ type: "float", nullable: true })
+    metaMensal?: number; // Meta mensal associada à carteira
+
     // Guarda a lista de ações (o mesmo formato do array que você enviou no POST)
     @Column("jsonb", { default: [] })
     assets!: Asset[]; 

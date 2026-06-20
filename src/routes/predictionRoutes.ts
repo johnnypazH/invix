@@ -2,10 +2,10 @@ import { Router, Request, Response } from 'express';
 import { supabase } from '../config/supabaseClient';
 import { AppDataSource } from '../config/data-source';
 import { Wallet } from '../models/Wallet';
+import { AuthRequest } from '../middlewares/authMiddleware';
 
 const router = Router();
 
-// Tipagem para o formato de ativo na carteira
 interface Asset {
   ticker: string;
   quantity: number;
@@ -13,11 +13,6 @@ interface Asset {
   dataCompra?: string;
 }
 
-/**
- * Calcula a previsão de dividendos para uma carteira de ativos.
- * @param wallet - Um array de ativos, cada um com 'ticker' e 'quantity'.
- * @returns Um objeto com o total previsto, detalhes por ativo e uma mensagem.
- */
 async function calculateWalletPrediction(wallet: Asset[]) {
   const oneYearAgo = new Date();
   oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
@@ -27,10 +22,9 @@ async function calculateWalletPrediction(wallet: Asset[]) {
   let totalInvested = 0;
   const assetsDetails = [];
 
-  // Itera sobre cada ativo da carteira para calcular a previsão
   for (const item of wallet) {
     const tickerStr = item.ticker.toUpperCase();
-    const qty = item.quantity; // A quantidade já deve ser um número
+    const qty = item.quantity;
     const pm = item.precoMedio || 0;
 
     const { data, error } = await supabase
@@ -41,38 +35,37 @@ async function calculateWalletPrediction(wallet: Asset[]) {
 
     if (error) throw error;
 
-    const totalPerShare = data.reduce((acc, curr) => acc + Number(curr.amount), 0);
+    const totalPerShare = (data || []).reduce((acc, curr) => acc + Number(curr.amount), 0);
     const projectedTotal = totalPerShare * qty;
-    
+
     let yoc = 0;
     if (pm > 0) {
       yoc = (totalPerShare / pm) * 100;
     }
 
     totalWalletPrediction += projectedTotal;
-    totalInvested += (pm * qty);
+    totalInvested += pm * qty;
 
     assetsDetails.push({
       ticker: tickerStr,
       quantity: qty,
-      preco_medio: pm,
-      data_compra: item.dataCompra || null,
-      projected_dividend_per_share: Number(totalPerShare.toFixed(4)),
-      projected_total: Number(projectedTotal.toFixed(2)),
-      yield_on_cost: Number(yoc.toFixed(2)) // YOC individual do ativo!
+      precoMedio: pm,
+      dataCompra: item.dataCompra || null,
+      projectedDividendPerShare: Number(totalPerShare.toFixed(4)),
+      projectedTotal: Number(projectedTotal.toFixed(2)),
+      yieldOnCost: Number(yoc.toFixed(2))
     });
   }
 
-  // Calcula o YOC Consolidado da Carteira
   let walletYoc = 0;
   if (totalInvested > 0) {
     walletYoc = (totalWalletPrediction / totalInvested) * 100;
   }
 
   return {
-    total_invested: Number(totalInvested.toFixed(2)),
-    total_wallet_prediction: Number(totalWalletPrediction.toFixed(2)),
-    wallet_yield_on_cost: Number(walletYoc.toFixed(2)),
+    totalInvestido: Number(totalInvested.toFixed(2)),
+    totalWalletPrediction: Number(totalWalletPrediction.toFixed(2)),
+    walletYieldOnCost: Number(walletYoc.toFixed(2)),
     assets: assetsDetails,
     message: `Com base nos últimos 12 meses, sua carteira com custo de R$ ${totalInvested.toFixed(2)} renderia aproximadamente R$ ${totalWalletPrediction.toFixed(2)} em 1 ano (YOC de ${walletYoc.toFixed(2)}%).`
   };
@@ -82,10 +75,11 @@ router.get('/', async (req: Request, res: Response) => {
   try {
     const { ticker, quantity, precoMedio } = req.query;
 
-    // Validação básica
     if (!ticker || !quantity) {
-      res.status(400).json({ error: 'Os parâmetros "ticker" e "quantity" são obrigatórios.' });
-      return;
+      return res.status(400).json({
+        success: false,
+        message: 'Os parâmetros "ticker" e "quantity" são obrigatórios.'
+      });
     }
 
     const tickerStr = (ticker as string).toUpperCase();
@@ -93,28 +87,31 @@ router.get('/', async (req: Request, res: Response) => {
     const pm = precoMedio ? parseFloat(precoMedio as string) : 0;
 
     if (isNaN(qty) || qty <= 0) {
-      res.status(400).json({ error: 'A quantidade deve ser um número inteiro maior que zero.' });
-      return;
+      return res.status(400).json({
+        success: false,
+        message: 'A quantidade deve ser um número inteiro maior que zero.'
+      });
     }
 
-    // Calcula a data de exatamente 1 ano atrás
     const oneYearAgo = new Date();
     oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
     const dateString = oneYearAgo.toISOString().split('T')[0];
 
-    // Busca todos os dividendos do último ano para a ação
     const { data, error } = await supabase
       .from('dividends')
       .select('amount')
       .eq('ticker', tickerStr)
-      .gte('payment_date', dateString); // gte = Greater Than or Equal (Maior ou igual a data de 1 ano atrás)
+      .gte('payment_date', dateString);
 
-    if (error) throw error;
+    if (error) {
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao processar a previsão.',
+        details: error.message
+      });
+    }
 
-    // Soma o valor total pago por ação no último ano
-    const totalPerShare = data.reduce((acc, curr) => acc + Number(curr.amount), 0);
-
-    // Calcula a projeção para a quantidade de ações da carteira do usuário
+    const totalPerShare = (data || []).reduce((acc, curr) => acc + Number(curr.amount), 0);
     const projectedTotal = totalPerShare * qty;
 
     let yoc = 0;
@@ -122,18 +119,25 @@ router.get('/', async (req: Request, res: Response) => {
       yoc = (totalPerShare / pm) * 100;
     }
 
-    res.json({
-      ticker: tickerStr,
-      quantity: qty,
-      preco_medio: pm,
-      projected_dividend_per_share: Number(totalPerShare.toFixed(4)),
-      projected_total: Number(projectedTotal.toFixed(2)),
-      yield_on_cost: Number(yoc.toFixed(2)),
-      message: `Com base nos últimos 12 meses, suas ${qty} ações da ${tickerStr} renderiam aproximadamente R$ ${projectedTotal.toFixed(2)} em 1 ano${pm > 0 ? ` (YOC: ${yoc.toFixed(2)}%)` : ''}.`
+    return res.status(200).json({
+      success: true,
+      data: {
+        ticker: tickerStr,
+        quantity: qty,
+        precoMedio: pm,
+        projectedDividendPerShare: Number(totalPerShare.toFixed(4)),
+        projectedTotal: Number(projectedTotal.toFixed(2)),
+        yieldOnCost: Number(yoc.toFixed(2)),
+        message: `Com base nos últimos 12 meses, suas ${qty} ações da ${tickerStr} renderiam aproximadamente R$ ${projectedTotal.toFixed(2)} em 1 ano${pm > 0 ? ` (YOC: ${yoc.toFixed(2)}%)` : ''}.`
+      },
+      message: 'Previsão calculada com sucesso.'
     });
-
   } catch (err: any) {
-    res.status(500).json({ error: 'Erro ao processar a previsão', details: err.message });
+    return res.status(500).json({
+      success: false,
+      message: 'Erro ao processar a previsão.',
+      details: err.message
+    });
   }
 });
 
@@ -142,44 +146,73 @@ router.post('/wallet', async (req: Request, res: Response) => {
     const { wallet }: { wallet: Asset[] } = req.body;
 
     if (!wallet || !Array.isArray(wallet) || wallet.length === 0) {
-      res.status(400).json({ error: 'O corpo da requisição deve conter um array "wallet" válido com os ativos.' });
-      return;
+      return res.status(400).json({
+        success: false,
+        message: 'O corpo da requisição deve conter um array "wallet" válido com os ativos.'
+      });
     }
 
-    // Validação de cada item da carteira
     for (const item of wallet) {
-      if (!item.ticker || typeof item.ticker !== 'string' || !item.quantity || typeof item.quantity !== 'number' || item.quantity <= 0) {
-        return res.status(400).json({ error: 'Cada item no array "wallet" deve ter "ticker" (string) e "quantity" (número > 0).' });
+      if (
+        !item.ticker ||
+        typeof item.ticker !== 'string' ||
+        !item.quantity ||
+        typeof item.quantity !== 'number' ||
+        item.quantity <= 0
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cada item no array "wallet" deve ter "ticker" (string) e "quantity" (número > 0).'
+        });
       }
     }
 
     const prediction = await calculateWalletPrediction(wallet);
 
-    res.json(prediction);
-
+    return res.status(200).json({
+      success: true,
+      data: prediction,
+      message: 'Previsão da carteira calculada com sucesso.'
+    });
   } catch (err: any) {
-    res.status(500).json({ error: 'Erro ao processar a previsão da carteira', details: err.message });
+    return res.status(500).json({
+      success: false,
+      message: 'Erro ao processar a previsão da carteira.',
+      details: err.message
+    });
   }
 });
 
-// NOVA ROTA: GET /api/predictions/wallet/:walletId
-// Pega uma carteira salva no banco e calcula a previsão de dividendos para ela.
-router.get('/wallet/:walletId', async (req: Request, res: Response) => {
+router.get('/wallet/:walletId', async (req: AuthRequest, res: Response) => {
   try {
-      const { walletId } = req.params;
+    const { walletId } = req.params;
+    const userId = req.userId;
 
-      const walletRepository = AppDataSource.getRepository(Wallet);
-      // Usando findOneByOrFail para buscar pelo ID.
-      const savedWallet = await walletRepository.findOneByOrFail({ id: walletId as string });
-      const prediction = await calculateWalletPrediction(savedWallet.assets);
-      res.json(prediction);
+    const walletRepository = AppDataSource.getRepository(Wallet);
+    const savedWallet = await walletRepository.findOneOrFail({
+      where: { id: walletId, user: { id: userId as string } }
+    });
 
+    const prediction = await calculateWalletPrediction(savedWallet.assets);
+
+    return res.status(200).json({
+      success: true,
+      data: prediction,
+      message: 'Previsão da carteira salva calculada com sucesso.'
+    });
   } catch (err: any) {
-      // O erro 'EntityNotFoundError' do findOneByOrFail será capturado aqui.
-      if (err.name === 'EntityNotFoundError') {
-        return res.status(404).json({ message: 'Carteira não encontrada.' });
-      }
-      res.status(500).json({ error: 'Erro ao processar a previsão da carteira salva', details: err.message });
+    if (err.name === 'EntityNotFoundError') {
+      return res.status(404).json({
+        success: false,
+        message: 'Carteira não encontrada.'
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: 'Erro ao processar a previsão da carteira salva.',
+      details: err.message
+    });
   }
 });
 

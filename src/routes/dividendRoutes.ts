@@ -3,14 +3,14 @@ import { supabase } from '../config/supabaseClient';
 
 const router = Router();
 
-// Rota GET /api/dividends
-// Aceita um filtro opcional pela URL, ex: /api/dividends?ticker=PETR4
 router.get('/', async (req: Request, res: Response) => {
   try {
     const { ticker } = req.query;
-    
-    // Prepara a query ordenando pela data de pagamento (mais recentes primeiro)
-    let query = supabase.from('dividends').select('*').order('payment_date', { ascending: false });
+
+    let query = supabase
+      .from('dividends')
+      .select('*')
+      .order('payment_date', { ascending: false });
 
     if (ticker) {
       query = query.eq('ticker', (ticker as string).toUpperCase());
@@ -18,20 +18,33 @@ router.get('/', async (req: Request, res: Response) => {
 
     const { data, error } = await query;
 
-    if (error) throw error;
+    if (error) {
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao buscar dividendos.',
+        details: error.message
+      });
+    }
 
-    // Padrão BFF: Mapeando (traduzindo) os dados do banco para o formato que a UI no Angular espera
-    const bffResponse = data.map((item: any) => ({
+    const bffResponse = (data || []).map((item: any) => ({
       ativo: item.ticker,
-      valor: item.amount,
+      valor: Number(item.amount),
       tipo: item.type,
       dataPagamento: item.payment_date,
       dataCom: item.last_date_prior
     }));
 
-    res.json(bffResponse); // Retorna os dados mastigados e traduzidos para o Frontend
+    return res.status(200).json({
+      success: true,
+      data: bffResponse,
+      message: 'Dividendos recuperados com sucesso.'
+    });
   } catch (err: any) {
-    res.status(500).json({ error: 'Erro interno ao buscar dividendos', details: err.message });
+    return res.status(500).json({
+      success: false,
+      message: 'Erro interno ao buscar dividendos.',
+      details: err.message
+    });
   }
 });
 
