@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
@@ -20,7 +21,7 @@ import { AuthService } from '../../services/auth.service';
 @Component({
     selector: 'app-novo-aporte',
     standalone: true,
-    imports: [CommonModule, ButtonModule, DialogModule, InputTextModule, FormsModule, TableModule, InputNumberModule, SelectModule, DatePickerModule, TextareaModule, ToastModule],
+    imports: [CommonModule, RouterModule, ButtonModule, DialogModule, InputTextModule, FormsModule, TableModule, InputNumberModule, SelectModule, DatePickerModule, TextareaModule, ToastModule],
     providers: [MessageService],
     styleUrl: './novo-aporte.scss',
     templateUrl: './novo-aporte.html'
@@ -34,6 +35,9 @@ export class NovoAporte implements OnInit {
     novaCarteiraNome: string = '';
     novaCarteiraDescricao: string = '';
     novaCarteiraMetaMensal: number | null = null;
+    
+    editando: boolean = false;
+    carteiraIdEmEdicao: string | null = null;
 
     carteiraSelecionada: Carteira | null = null;
     carregandoAporte: boolean = false;
@@ -60,16 +64,51 @@ export class NovoAporte implements OnInit {
             error: (err) => console.error('Erro ao carregar carteiras:', err)
         });
 
-        // A lista de ativos da tela agora deve vir da API própria do projeto.
-        // Como não temos um endpoint específico para isso ainda, mantemos a tabela vazia até o back fornecer o contrato.
-        this.ativosDisponiveis = [];
+        this.carregarAtivosDisponiveis();
+    }
+
+    carregarAtivosDisponiveis() {
+        this.ativoService.getAtivosDisponiveis().subscribe({
+            next: (ativos) => {
+                this.ativosDisponiveis = ativos;
+            },
+            error: (err) => console.error('Erro ao carregar ativos disponíveis:', err)
+        });
     }
 
     abrirModalNovaCarteira() {
         this.novaCarteiraNome = '';
         this.novaCarteiraDescricao = '';
         this.novaCarteiraMetaMensal = null;
+        this.editando = false;
+        this.carteiraIdEmEdicao = null;
         this.mostrarModalNovaCarteira = true;
+    }
+
+    abrirModalEdicao(carteira: Carteira) {
+        this.novaCarteiraNome = carteira.nome;
+        this.novaCarteiraDescricao = carteira.descricao || '';
+        this.novaCarteiraMetaMensal = carteira.metaMensal || null;
+        this.editando = true;
+        this.carteiraIdEmEdicao = carteira.id || null;
+        this.mostrarModalNovaCarteira = true;
+    }
+
+    confirmarExclusao(carteira: Carteira) {
+        if (confirm(`Tem certeza que deseja excluir a carteira "${carteira.nome}"? Esta ação removerá todos os ativos vinculados a ela.`)) {
+            if (carteira.id) {
+                this.carteiraService.excluirCarteira(carteira.id).subscribe({
+                    next: () => {
+                        this.minhasCarteiras = this.minhasCarteiras.filter(c => c.id !== carteira.id);
+                        this.messageService.add({ severity: 'success', summary: 'Sucesso', detail: 'Carteira excluída com sucesso!' });
+                    },
+                    error: (err) => {
+                        console.error('Erro ao excluir carteira:', err);
+                        this.messageService.add({ severity: 'error', summary: 'Erro', detail: 'Não foi possível excluir a carteira.' });
+                    }
+                });
+            }
+        }
     }
 
     salvarNovaCarteira() {
@@ -84,17 +123,41 @@ export class NovoAporte implements OnInit {
             metaMensal: this.novaCarteiraMetaMensal ?? undefined
         };
 
-        this.carteiraService.adicionarCarteira(payload).subscribe({
-            next: (carteiraAdicionada) => {
-                this.minhasCarteiras.push(carteiraAdicionada);
-                this.mostrarModalNovaCarteira = false;
-                this.messageService.add({ severity: 'success', summary: 'Sucesso', detail: 'Carteira criada com sucesso!' });
-            },
-            error: (err) => {
-                console.error('Erro ao adicionar carteira:', err);
-                this.messageService.add({ severity: 'error', summary: 'Erro', detail: 'Não foi possível criar a carteira.' });
-            }
-        });
+        if (this.editando && this.carteiraIdEmEdicao) {
+            this.carteiraService.atualizarCarteira(this.carteiraIdEmEdicao, payload).subscribe({
+                next: (carteiraAtualizada) => {
+                    const index = this.minhasCarteiras.findIndex(c => c.id === this.carteiraIdEmEdicao);
+                    if (index !== -1) {
+                        this.minhasCarteiras[index] = {
+                            ...carteiraAtualizada,
+                            nome: carteiraAtualizada.nome || (carteiraAtualizada as any).name || ''
+                        };
+                        this.minhasCarteiras = [...this.minhasCarteiras];
+                    }
+                    this.mostrarModalNovaCarteira = false;
+                    this.messageService.add({ severity: 'success', summary: 'Sucesso', detail: 'Carteira atualizada!' });
+                },
+                error: (err) => {
+                    console.error('Erro ao atualizar carteira:', err);
+                    this.messageService.add({ severity: 'error', summary: 'Erro', detail: 'Não foi possível atualizar a carteira.' });
+                }
+            });
+        } else {
+            this.carteiraService.adicionarCarteira(payload).subscribe({
+                next: (carteiraAdicionada) => {
+                    this.minhasCarteiras.push({
+                        ...carteiraAdicionada,
+                        nome: carteiraAdicionada.nome || (carteiraAdicionada as any).name || ''
+                    });
+                    this.mostrarModalNovaCarteira = false;
+                    this.messageService.add({ severity: 'success', summary: 'Sucesso', detail: 'Carteira criada com sucesso!' });
+                },
+                error: (err) => {
+                    console.error('Erro ao adicionar carteira:', err);
+                    this.messageService.add({ severity: 'error', summary: 'Erro', detail: 'Não foi possível criar a carteira.' });
+                }
+            });
+        }
     }
 
     abrirModalAdicionarAtivo() {
@@ -106,8 +169,8 @@ export class NovoAporte implements OnInit {
     }
 
     selecionarAtivoParaAporte(ativo: Ativo) {
-        // Mantém o fluxo de aporte, mas agora sem depender da lista externa da Brapi.
-        this.ativoParaAporte = { ...ativo, quantidade: 0, precoMedio: 0, dataCompra: undefined };
+        // Mantém o fluxo de aporte, sugerindo o preço atual como preço de compra
+        this.ativoParaAporte = { ...ativo, quantidade: 0, precoMedio: ativo.precoAtual || 0, dataCompra: undefined };
         this.carteiraSelecionada = null;
         this.mostrarModalAdicionarAtivo = true;
     }
@@ -160,6 +223,7 @@ export class NovoAporte implements OnInit {
                     next: () => {
                         this.messageService.add({ severity: 'success', summary: 'Sucesso', detail: 'Aporte realizado com sucesso!' });
                         this.mostrarModalAdicionarAtivo = false;
+                        this.carregarAtivosDisponiveis();
                     },
                     error: (err) => {
                         console.error('Erro ao aportar ativo:', err);

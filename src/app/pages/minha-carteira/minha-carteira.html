@@ -7,15 +7,94 @@
 <div class="carteira-wrapper">
 <div class="grid carteira-grid">
 
+    <!-- Cards de Resumo da Carteira -->
+    <div class="resumo-cards-container" *ngIf="carteiraSelecionada">
+        <!-- Card 1: Patrimônio Atual -->
+        <div class="resumo-card-item">
+            <div class="card mb-0 h-full">
+                <div class="flex justify-between mb-3">
+                    <div>
+                        <span class="block text-500 font-medium mb-3">Patrimônio Atual</span>
+                        <div class="text-900 font-bold text-xl">{{ (carteiraSelecionada.patrimonioTotal || 0) | currency:'BRL' }}</div>
+                    </div>
+                    <div class="flex items-center justify-center bg-blue-100 dark:bg-blue-900/40 rounded-xl" style="width: 2.5rem; height: 2.5rem">
+                        <i class="pi pi-wallet text-blue-500 text-xl!"></i>
+                    </div>
+                </div>
+                <span class="text-500">Valor atual de mercado</span>
+            </div>
+        </div>
+
+        <!-- Card 2: Valor Investido -->
+        <div class="resumo-card-item">
+            <div class="card mb-0 h-full">
+                <div class="flex justify-between mb-3">
+                    <div>
+                        <span class="block text-500 font-medium mb-3">Total Investido</span>
+                        <div class="text-900 font-bold text-xl">{{ (carteiraSelecionada.custoTotal || 0) | currency:'BRL' }}</div>
+                    </div>
+                    <div class="flex items-center justify-center bg-orange-100 dark:bg-orange-900/40 rounded-xl" style="width: 2.5rem; height: 2.5rem">
+                        <i class="pi pi-money-bill text-orange-500 text-xl!"></i>
+                    </div>
+                </div>
+                <span class="text-500">Custo médio de aquisição</span>
+            </div>
+        </div>
+
+        <!-- Card 3: Proventos Recebidos -->
+        <div class="resumo-card-item">
+            <div class="card mb-0 h-full">
+                <div class="flex justify-between mb-3">
+                    <div>
+                        <span class="block text-500 font-medium mb-3">Proventos Recebidos</span>
+                        <div class="text-900 font-bold text-xl text-green-600 dark:text-green-400">{{ (carteiraSelecionada.proventosTotais || 0) | currency:'BRL' }}</div>
+                    </div>
+                    <div class="flex items-center justify-center bg-green-100 dark:bg-green-900/40 rounded-xl" style="width: 2.5rem; height: 2.5rem">
+                        <i class="pi pi-dollar text-green-500 text-xl!"></i>
+                    </div>
+                </div>
+                <span class="text-500">Dividendos + JCP acumulados</span>
+            </div>
+        </div>
+
+        <!-- Card 4: Rentabilidade Acumulada -->
+        <div class="resumo-card-item">
+            <div class="card mb-0 h-full">
+                <div class="flex justify-between mb-3">
+                    <div>
+                        <span class="block text-500 font-medium mb-3">Resultado Total</span>
+                        <div class="text-xl font-bold" [ngClass]="{'text-green-500': (carteiraSelecionada.rentabilidadeTotal || 0) >= 0, 'text-red-500': (carteiraSelecionada.rentabilidadeTotal || 0) < 0}">
+                            {{ (carteiraSelecionada.rentabilidadeTotal || 0) | currency:'BRL' }}
+                            <span class="text-xs ml-1">
+                                ({{ (carteiraSelecionada.rentabilidadePercentual || 0) > 0 ? '+' : '' }}{{ (carteiraSelecionada.rentabilidadePercentual || 0) | number:'1.2-2' }}%)
+                            </span>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-center rounded-xl" style="width: 2.5rem; height: 2.5rem"
+                         [ngClass]="{
+                            'bg-green-100 dark:bg-green-900/40': (carteiraSelecionada.rentabilidadeTotal || 0) >= 0,
+                            'bg-red-100 dark:bg-red-900/40': (carteiraSelecionada.rentabilidadeTotal || 0) < 0
+                         }">
+                        <i class="pi pi-chart-line text-xl!" [ngClass]="{'text-green-500': (carteiraSelecionada.rentabilidadeTotal || 0) >= 0, 'text-red-500': (carteiraSelecionada.rentabilidadeTotal || 0) < 0}"></i>
+                    </div>
+                </div>
+                <span class="text-500">Cotação + Proventos</span>
+            </div>
+        </div>
+    </div>
+
     <!-- TOPO: Tabela de Ativos (Card Visão da Carteira) -->
     <div class="col-12">
         <div class="card">
             <div class="carteira-header mb-4">
                 <div class="carteira-title-group">
-                    <h2 class="carteira-title text-surface-900 dark:text-surface-0">Visão da Carteira</h2>
+                    <h2 class="carteira-title text-surface-900 dark:text-surface-0">
+                        Visão da Carteira <span class="text-primary font-bold ml-1" *ngIf="carteiraSelecionada">({{ carteiraSelecionada.nome }})</span>
+                    </h2>
                     <p-select [options]="minhasCarteiras" 
                               [(ngModel)]="carteiraSelecionada" 
                               optionLabel="nome" 
+                              dataKey="id"
                               (onChange)="onCarteiraChange()" 
                               placeholder="Alternar carteira..." 
                               styleClass="carteira-dropdown">
@@ -35,7 +114,7 @@
                         <th pSortableColumn="precoAtual" class="text-right">Preço Atual <p-sortIcon field="precoAtual"></p-sortIcon></th>
                         <th class="text-right">Rentabilidade</th>
                         <th pSortableColumn="dataCompra" class="text-center">Data Compra <p-sortIcon field="dataCompra"></p-sortIcon></th>
-                        <th class="text-center" style="width: 5rem">Ações</th>
+                        <th class="text-center" style="width: 8rem">Ações</th>
                     </tr>
                 </ng-template>
                 <ng-template pTemplate="body" let-ativo>
@@ -46,12 +125,23 @@
                         <td class="text-right">{{ativo.quantidade}}</td>
                         <td class="text-right">{{ativo.precoMedio | currency:'BRL'}}</td>
                         <td class="text-right">{{ativo.precoAtual | currency:'BRL'}}</td>
-                        <td class="text-right" [ngClass]="{'text-green-500': getRentabilidade(ativo) >= 0, 'text-red-500': getRentabilidade(ativo) < 0}">
-                            {{ getRentabilidade(ativo) | currency:'BRL' }}
+                        <td class="text-right">
+                            <div [ngClass]="{'text-green-500': getRentabilidade(ativo) >= 0, 'text-red-500': getRentabilidade(ativo) < 0}">
+                                <div class="font-bold">{{ getRentabilidade(ativo) | currency:'BRL' }}</div>
+                                <div class="text-xs">
+                                    {{ (ativo.rentabilidade || 0) > 0 ? '+' : '' }}{{ ativo.rentabilidade | number:'1.2-2' }}%
+                                </div>
+                            </div>
+                            <div class="text-500" style="font-size: 0.7rem; line-height: 1;">
+                                Cotação: {{ (ativo.ganhoCapital || 0) | currency:'BRL' }} | Prov.: {{ (ativo.dividendosRecebidos || 0) | currency:'BRL' }}
+                            </div>
                         </td>
                         <td class="text-center">{{ (ativo.dataCompra | date:'dd/MM/yyyy') || '-' }}</td>
                         <td class="text-center">
-                            <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger" (onClick)="excluirAtivo(ativo)"></p-button>
+                            <div class="flex justify-center items-center gap-2">
+                                <p-button icon="pi pi-plus" [rounded]="true" [text]="true" severity="success" (onClick)="abrirModalAporte(ativo)" title="Aportar mais"></p-button>
+                                <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger" (onClick)="excluirAtivo(ativo)" title="Remover ativo"></p-button>
+                            </div>
                         </td>
                     </tr>
                 </ng-template>
@@ -79,16 +169,16 @@
 </div>
 
 <!-- Modal para Novo Aporte -->
-<p-dialog header="Adicionar Novo Aporte" [(visible)]="mostrarModal" [modal]="true" [style]="{width: '400px'}" [draggable]="false" [resizable]="false">
-    <div class="p-fluid grid formgrid pt-2 px-0">
-        <div class="field col-12 mb-3">
-            <label for="ticker" class="font-bold block mb-2">Ticker (Código)</label>
-            <input pInputText id="ticker" [(ngModel)]="novoAtivo.ticker" (blur)="buscarDetalhesAtivo()" placeholder="Ex: WEGE3" autofocus class="text-lg" />
+<p-dialog header="Adicionar Novo Aporte" [(visible)]="mostrarModal" [modal]="true" [style]="{width: '420px'}" [draggable]="false" [resizable]="false">
+    <div class="flex flex-col gap-4 py-2">
+        <div class="flex flex-col gap-2">
+            <label for="ticker" class="font-bold text-sm text-surface-900 dark:text-surface-0">Ticker (Código)</label>
+            <input pInputText id="ticker" [(ngModel)]="novoAtivo.ticker" (blur)="buscarDetalhesAtivo()" placeholder="Ex: WEGE3" autofocus class="text-lg w-full" />
             <small class="text-500 mt-1 block" *ngIf="!buscandoAtivo">Ao sair do campo, o sistema buscará o preço.</small>
             <small class="text-primary mt-1 block" *ngIf="buscandoAtivo"><i class="pi pi-spin pi-spinner"></i> Buscando na Brapi...</small>
         </div>
-        <div class="field col-12 mb-3 text-left">
-            <label for="quantidade" class="font-bold block mb-2">Quantidade</label>
+        <div class="flex flex-col gap-2 text-left">
+            <label for="quantidade" class="font-bold text-sm text-surface-900 dark:text-surface-0">Quantidade</label>
             <p-inputNumber id="quantidade" 
                            [(ngModel)]="novoAtivo.quantidade" 
                            [showButtons]="true" 
@@ -101,16 +191,18 @@
                            incrementButtonClass="p-button-success" 
                            incrementButtonIcon="pi pi-plus" 
                            decrementButtonIcon="pi pi-minus"
-                           inputStyleClass="text-center font-bold text-lg">
+                           inputStyleClass="text-center font-bold text-lg"
+                           class="w-full"
+                           styleClass="w-full">
             </p-inputNumber>
         </div>
-        <div class="field col-12 mb-3">
-            <label for="precoMedio" class="font-bold block mb-2">Preço Pago (Unitário)</label>
-            <p-inputNumber id="precoMedio" [(ngModel)]="novoAtivo.precoMedio" mode="currency" currency="BRL" locale="pt-BR" placeholder="R$ 0,00" class="font-bold text-lg"></p-inputNumber>
+        <div class="flex flex-col gap-2">
+            <label for="precoMedio" class="font-bold text-sm text-surface-900 dark:text-surface-0">Preço Pago (Unitário)</label>
+            <p-inputNumber id="precoMedio" [(ngModel)]="novoAtivo.precoMedio" mode="currency" currency="BRL" locale="pt-BR" placeholder="R$ 0,00" class="font-bold text-lg w-full" styleClass="w-full"></p-inputNumber>
         </div>
-        <div class="field col-12 mb-0">
-            <label for="dataCompra" class="font-bold block mb-2">Data da Compra (Opcional)</label>
-            <p-datepicker id="dataCompra" [(ngModel)]="novoAtivo.dataCompra" dateFormat="dd/mm/yy" [showIcon]="true" placeholder="Ex: 20/05/2021" appendTo="body" styleClass="w-full"></p-datepicker>
+        <div class="flex flex-col gap-2">
+            <label for="dataCompra" class="font-bold text-sm text-surface-900 dark:text-surface-0">Data da Compra (Opcional)</label>
+            <p-datepicker id="dataCompra" [(ngModel)]="novoAtivo.dataCompra" dateFormat="dd/mm/yy" [showIcon]="true" placeholder="Ex: 20/05/2021" appendTo="body" styleClass="w-full" class="w-full"></p-datepicker>
         </div>
     </div>
     <ng-template pTemplate="footer">

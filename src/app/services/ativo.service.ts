@@ -13,6 +13,10 @@ export interface Ativo {
   precoAtual: number;
   dividendYield: number;
   dataCompra?: string | Date;
+  rentabilidade?: number;
+  rentabilidadeValor?: number;
+  dividendosRecebidos?: number;
+  ganhoCapital?: number;
 }
 
 @Injectable({
@@ -23,6 +27,16 @@ export class AtivoService {
   private baseUrl = 'http://localhost:3333/api';
 
   constructor(private http: HttpClient) { }
+
+  // Busca a lista de todos os ativos disponíveis no banco (Supabase)
+  getAtivosDisponiveis(): Observable<Ativo[]> {
+    return this.http.get<any>(`${this.baseUrl}/dividends/ativos`).pipe(
+      map((response) => {
+        const payload = response?.data ?? response;
+        return Array.isArray(payload) ? payload : [];
+      })
+    );
+  }
 
   // Busca os ativos de uma carteira específica
   getAtivos(carteiraId: string): Observable<Ativo[]> {

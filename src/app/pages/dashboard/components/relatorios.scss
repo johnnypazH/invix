@@ -9,7 +9,17 @@
     flex: 0 0 auto;
     padding: 1rem;
     width: 100%;
-    max-width: 900px; /* Para manter na mesma largura máxima do Dashboard */
+    max-width: 1400px; /* Aumentado de 900px para 1400px para aproveitar melhor a tela */
+}
+
+/* Aumenta a legibilidade da tabela para leitura confortável */
+:host ::ng-deep .p-datatable {
+    font-size: 0.95rem;
+}
+
+:host ::ng-deep .p-datatable .p-datatable-thead > tr > th {
+    font-size: 0.95rem;
+    font-weight: 700;
 }
 
 @media (min-width: 1200px) {

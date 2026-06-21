@@ -15,7 +15,7 @@
 
     <!-- Widget de Estatísticas (As 4 caixas) -->
     <div class="col-12 py-0">
-        <app-stats-widget [patrimonioTotal]="patrimonioTotal" [ganhoTotal]="ganhoTotal" [totalAtivos]="totalAtivos" [dividendos]="dividendosTotal"></app-stats-widget>
+        <app-stats-widget [patrimonioTotal]="patrimonioTotal" [ganhoTotal]="ganhoTotal" [totalAtivos]="totalAtivos" [dividendos]="dividendosTotal" [totalInvestido]="totalInvestido" [ativos]="ativos"></app-stats-widget>
     </div>
 
     <!-- Lista de Carteiras -->
@@ -39,10 +39,8 @@
                         <td>
                             <span class="text-600">{{ carteira.descricao || 'Sem descrição' }}</span>
                         </td>
-                        <td class="flex justify-content-center gap-2">
-                            <a pButton icon="pi pi-search" class="p-button-rounded p-button-outlined" [routerLink]="['/carteira', carteira.id]" title="Ver Detalhes"></a>
-                            <button pButton icon="pi pi-pencil" class="p-button-rounded p-button-outlined p-button-warning" (click)="abrirModalEdicao(carteira)" title="Editar Carteira"></button>
-                            <button pButton icon="pi pi-trash" class="p-button-rounded p-button-outlined p-button-danger" (click)="confirmarExclusao(carteira)" title="Excluir Carteira"></button>
+                        <td class="flex justify-content-center">
+                            <a pButton icon="pi pi-search" class="p-button-rounded p-button-outlined p-button-sm" [routerLink]="['/carteira', carteira.id]" title="Ver Detalhes"></a>
                         </td>
                     </tr>
                 </ng-template>
@@ -84,18 +82,18 @@
 </div>
 
 <!-- Modal para Nova Carteira -->
-<p-dialog [header]="editando ? 'Editar Carteira' : 'Criar Nova Carteira'" [(visible)]="mostrarModal" [modal]="true" [style]="{width: '450px'}" [draggable]="false">
-    <div class="p-fluid grid formgrid">
-        <div class="field col-12">
-            <label for="nome">Nome da Carteira</label>
-            <input pInputText id="nome" [(ngModel)]="novaCarteira.nome" required autofocus />
+<p-dialog [header]="editando ? 'Editar Carteira' : 'Criar Nova Carteira'" [(visible)]="mostrarModal" [modal]="true" [style]="{width: '420px'}" [draggable]="false" [resizable]="false">
+    <div class="flex flex-col gap-4 py-2">
+        <div class="flex flex-col gap-2">
+            <label for="nome" class="font-bold text-sm text-surface-900 dark:text-surface-0">Nome da Carteira</label>
+            <input pInputText id="nome" [(ngModel)]="novaCarteira.nome" required autofocus class="w-full" />
         </div>
-        <div class="field col-12">
-            <label for="descricao">Descrição (Opcional)</label>
-            <textarea rows="3" pInputTextarea id="descricao" [(ngModel)]="novaCarteira.descricao"></textarea>
+        <div class="flex flex-col gap-2">
+            <label for="descricao" class="font-bold text-sm text-surface-900 dark:text-surface-0">Descrição (Opcional)</label>
+            <textarea rows="3" pInputTextarea id="descricao" [(ngModel)]="novaCarteira.descricao" class="w-full"></textarea>
         </div>
-        <div class="field col-12">
-            <label for="metaMensal">Meta Mensal (Opcional)</label>
+        <div class="flex flex-col gap-2">
+            <label for="metaMensal" class="font-bold text-sm text-surface-900 dark:text-surface-0">Meta Mensal (Opcional)</label>
             <p-inputNumber
                 id="metaMensal"
                 [(ngModel)]="novaCarteira.metaMensal"
@@ -103,7 +101,8 @@
                 currency="BRL"
                 locale="pt-BR"
                 placeholder="R$ 0,00"
-                styleClass="w-full">
+                styleClass="w-full"
+                class="w-full">
             </p-inputNumber>
         </div>
     </div>

@@ -52,7 +52,7 @@ export class AppTopbar implements OnInit {
 
         if (isLogado) {
             this.userMenuItems = [
-                { label: 'Meu Perfil', icon: 'pi pi-user' },
+                { label: 'Meu Perfil', icon: 'pi pi-user', routerLink: ['/perfil'] },
                 { separator: true },
                 { label: 'Sair', icon: 'pi pi-sign-out', command: () => this.authService.logout() }
             ];

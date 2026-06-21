@@ -6,6 +6,7 @@ import { Dashboard } from './app/pages/dashboard/dashboard'; // O Sakai costuma 
 import { MinhaCarteira } from './app/pages/minha-carteira/minha-carteira'; // Caminho atualizado
 import { NovoAporte } from './app/pages/novo-aporte/novo-aporte'; // Novo componente
 import { Relatorios } from './app/pages/dashboard/components/relatorios'; 
+import { Perfil } from './app/pages/perfil/perfil'; // Componente de perfil do usuário 
 
 import { Notfound } from './app/pages/notfound/notfound';
 import { authGuard } from './app/pages/auth/auth.guard';
@@ -30,6 +31,9 @@ export const appRoutes: Routes = [
 
             // Rota para a aba de Relatórios e Metas
             { path: 'relatorios', component: Relatorios },
+
+            // Rota para Edição de Perfil
+            { path: 'perfil', component: Perfil },
         ]
     },
     // Mantendo as rotas de autenticação para o futuro

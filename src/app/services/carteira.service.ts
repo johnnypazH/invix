@@ -7,6 +7,11 @@ export interface Carteira {
   nome: string;
   descricao?: string;
   metaMensal?: number;
+  patrimonioTotal?: number;
+  custoTotal?: number;
+  proventosTotais?: number;
+  rentabilidadeTotal?: number;
+  rentabilidadePercentual?: number;
 }
 
 @Injectable({

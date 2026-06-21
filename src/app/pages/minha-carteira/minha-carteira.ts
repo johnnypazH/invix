@@ -92,6 +92,12 @@ export class MinhaCarteira implements OnInit, OnDestroy {
             const payload = dadosCarteira?.wallet ?? dadosCarteira?.carteira ?? dadosCarteira?.result?.wallet ?? dadosCarteira;
             this.ativos = payload?.assets || dadosCarteira?.assets || payload?.itens || [];
             this.composicaoBackend = payload?.composicaoPorSetor || dadosCarteira?.composicaoPorSetor || [];
+            
+            // Atualiza a carteira selecionada para termos as métricas no HTML
+            this.carteiraSelecionada = {
+                ...payload,
+                nome: payload?.name || payload?.nome || ''
+            };
 
             this.initGraficos();
         },
@@ -110,6 +116,16 @@ export class MinhaCarteira implements OnInit, OnDestroy {
   abrirModal() {
       // Limpa o formulário antes de abrir
       this.novoAtivo = {};
+      this.mostrarModal = true;
+  }
+
+  abrirModalAporte(ativo: Ativo) {
+      this.novoAtivo = {
+          ticker: ativo.ticker,
+          nome: ativo.nome,
+          precoAtual: ativo.precoAtual,
+          precoMedio: ativo.precoAtual || 0
+      };
       this.mostrarModal = true;
   }
 
@@ -154,21 +170,12 @@ export class MinhaCarteira implements OnInit, OnDestroy {
         .pipe(finalize(() => this.carregando = false)) // Garante que o loading para no final
         .subscribe({
           next: (ativoAdicionado) => {
-            // Verifica se o ativo já estava na carteira (O Back-end recalculou o preço médio)
-            const index = this.ativos.findIndex(a => a.ticker === ativoAdicionado.ticker);
-            if (index !== -1) {
-              this.ativos[index] = ativoAdicionado; // Atualiza a linha existente
-              this.ativos = [...this.ativos]; // Força o Angular a redesenhar a tabela
-            } else {
-              this.ativos = [...this.ativos, ativoAdicionado]; // Adiciona nova linha
-            }
-
-            // Atualiza os gráficos
-            this.initGraficos();
+            // Recarrega todos os dados da carteira do back-end para recalcular as rentabilidades com proventos de tudo de uma vez
+            this.carregarDadosCarteira(this.carteiraId);
             
             // Fecha o modal
             this.mostrarModal = false;
-
+            
             // Exibe mensagem de sucesso
             this.messageService.add({ severity: 'success', summary: 'Sucesso', detail: 'Ativo adicionado à carteira!' });
           },
@@ -271,7 +278,7 @@ export class MinhaCarteira implements OnInit, OnDestroy {
   // O HTML precisa dessa função pública para calcular a cor (verde/vermelho)
   getRentabilidade(ativo: Ativo): number {
     if (!ativo) return 0; // Segurança caso o ativo seja nulo
-    return (ativo.precoAtual - ativo.precoMedio) * ativo.quantidade;
+    return ativo.rentabilidadeValor ?? 0;
   }
 
   excluirAtivo(ativo: Ativo) {

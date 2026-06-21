@@ -48,6 +48,8 @@ export class Dashboard implements OnInit {
   ganhoTotal: number = 0;
   totalAtivos: number = 0;
   dividendosTotal: number = 0;
+  totalInvestido: number = 0;
+  ativos: any[] = [];
   
   mostrarModal = false;
   carregando = false;
@@ -75,9 +77,11 @@ export class Dashboard implements OnInit {
         
         // Recebendo os superpoderes do backend
         this.patrimonioTotal = dadosBff.patrimonioTotal || 0;
+        this.totalInvestido = dadosBff.totalInvestido || 0;
         this.ganhoTotal = dadosBff.ganhoTotal ?? dadosBff.lucroTotal ?? 0;
         this.totalAtivos = dadosBff.totalAtivos || this.carteiras.reduce((acc, c: any) => acc + (c.assets ? c.assets.length : 0), 0);
-        this.dividendosTotal = dadosBff.dividendosTotal || 0;
+        this.dividendosTotal = dadosBff.dividendosAcumulados || 0;
+        this.ativos = dadosBff.ativos || [];
 
         console.log('Dados recebidos do BFF:', dadosBff);
       },
