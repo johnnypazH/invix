@@ -620,4 +620,50 @@ router.delete('/:id/assets/:ticker', async (req: AuthRequest, res: Response) => 
   }
 });
 
+router.get('/history/:ticker', async (req: AuthRequest, res: Response) => {
+  try {
+    const ticker = req.params.ticker.toUpperCase();
+    const brapiToken = process.env.BRAPI_TOKEN;
+    
+    // Buscar histórico do último mês com intervalo diário
+    const response = await axios.get(`https://brapi.dev/api/quote/${ticker}?range=1mo&interval=1d&token=${brapiToken}`);
+    
+    if (!response.data.results || response.data.results.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `Não foi possível encontrar dados históricos para o ativo ${ticker}.`
+      });
+    }
+
+    const result = response.data.results[0];
+    const historicalPrice = result.historicalDataPrice || [];
+
+    // Formata o histórico para exibição legível no gráfico
+    const formattedHistory = historicalPrice.map((item: any) => {
+      const d = new Date(item.date * 1000);
+      const dia = String(d.getDate()).padStart(2, '0');
+      const mes = String(d.getMonth() + 1).padStart(2, '0');
+      return {
+        date: `${dia}/${mes}`,
+        close: Number(item.close.toFixed(2))
+      };
+    });
+
+    return res.json({
+      success: true,
+      data: {
+        ticker,
+        history: formattedHistory
+      }
+    });
+  } catch (error: any) {
+    console.error('Erro ao buscar histórico de preços:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Erro interno ao buscar histórico de preços do ativo.',
+      details: error.message
+    });
+  }
+});
+
 export default router;
