@@ -37,6 +37,26 @@ export class MinhaCarteira implements OnInit, OnDestroy {
   dataProjecao: any;
   optionsProjecao: any;
   mostrarModal: boolean = false; // Controla se o modal aparece ou não
+
+  // Novas variáveis do Histórico Temporal de Ativos
+  mostrarModalHistorico: boolean = false;
+  carregandoHistorico: boolean = false;
+  historicoTicker: string = '';
+  dataHistoricoAtivo: any;
+  optionsHistoricoAtivo: any;
+
+  // Parâmetros do simulador de crescimento
+  projecaoAnos: number = 5;
+  projecaoAporteMensal: number = 500;
+  projecaoTaxaAnual: number = 10;
+  opcoesAnos = [
+    { label: '2 Anos', value: 2 },
+    { label: '5 Anos', value: 5 },
+    { label: '10 Anos', value: 10 },
+    { label: '15 Anos', value: 15 },
+    { label: '20 Anos', value: 20 }
+  ];
+
   carregando: boolean = false; // Controla o estado de loading do botão
   buscandoAtivo: boolean = false; // Controla o spinner de busca da Brapi
   private carteiraId!: string; // Armazena o ID da carteira atual
@@ -238,15 +258,23 @@ export class MinhaCarteira implements OnInit, OnDestroy {
 
     // --- 2. Projeção ---
     const valorTotalAtual = this.ativos.reduce((acc, at) => acc + (at.precoAtual * at.quantidade), 0);
-    const dyMedioPonderado = 0.10; 
+    const dyMedioPonderado = this.projecaoTaxaAnual / 100; 
+    const aporteMensal = this.projecaoAporteMensal;
+    const totalAnos = this.projecaoAnos;
     
-    let anos = ['Hoje', 'Ano 1', 'Ano 2', 'Ano 3', 'Ano 4', 'Ano 5'];
+    let anos = ['Hoje'];
     let valoresFuturos = [valorTotalAtual];
     let valorAcumulado = valorTotalAtual;
     
-    for (let i = 1; i <= 5; i++) {
-        valorAcumulado = valorAcumulado * (1 + dyMedioPonderado);
-        valoresFuturos.push(valorAcumulado);
+    for (let i = 1; i <= totalAnos; i++) {
+        const rendimentoCapital = valorAcumulado * dyMedioPonderado;
+        const totalAportadoNoAno = aporteMensal * 12;
+        const rendimentoAportes = totalAportadoNoAno * (dyMedioPonderado / 2);
+        
+        valorAcumulado = valorAcumulado + rendimentoCapital + totalAportadoNoAno + rendimentoAportes;
+        
+        anos.push(`Ano ${i}`);
+        valoresFuturos.push(Number(valorAcumulado.toFixed(2)));
     }
 
     this.dataProjecao = {
@@ -295,6 +323,69 @@ export class MinhaCarteira implements OnInit, OnDestroy {
         }
       });
     }
+  }
+
+  abrirModalHistorico(ativo: any) {
+    if (!ativo?.ticker) return;
+
+    this.historicoTicker = ativo.ticker.toUpperCase();
+    this.mostrarModalHistorico = true;
+    this.carregandoHistorico = true;
+
+    this.carteiraService.getHistoricoAtivo(this.historicoTicker).subscribe({
+      next: (res: any) => {
+        const history = res.history || [];
+        const isDark = this.layoutService.isDarkTheme();
+        const corTexto = isDark ? '#e0e0e0' : '#4b5563';
+        const corGrid = isDark ? '#424242' : '#e5e7eb';
+
+        this.dataHistoricoAtivo = {
+          labels: history.map((h: any) => h.date),
+          datasets: [
+            {
+              label: 'Preço de Fechamento (R$)',
+              data: history.map((h: any) => h.close),
+              fill: false,
+              borderColor: '#10B981',
+              tension: 0.3,
+              borderWidth: 2,
+              pointRadius: 2
+            }
+          ]
+        };
+
+        this.optionsHistoricoAtivo = {
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: { color: corTexto }
+            }
+          },
+          scales: {
+            x: {
+              ticks: { color: corTexto },
+              grid: { color: corGrid }
+            },
+            y: {
+              ticks: { color: corTexto, callback: (value: any) => 'R$ ' + Number(value).toFixed(2) },
+              grid: { color: corGrid }
+            }
+          }
+        };
+
+        this.carregandoHistorico = false;
+      },
+      error: (err) => {
+        console.error('Erro ao buscar histórico de preços:', err);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Erro',
+          detail: `Não foi possível obter o histórico de cotações para ${this.historicoTicker}.`
+        });
+        this.carregandoHistorico = false;
+        this.mostrarModalHistorico = false;
+      }
+    });
   }
 
   ngOnDestroy() {

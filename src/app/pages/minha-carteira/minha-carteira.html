@@ -139,8 +139,9 @@
                         <td class="text-center">{{ (ativo.dataCompra | date:'dd/MM/yyyy') || '-' }}</td>
                         <td class="text-center">
                             <div class="flex justify-center items-center gap-2">
-                                <p-button icon="pi pi-plus" [rounded]="true" [text]="true" severity="success" (onClick)="abrirModalAporte(ativo)" title="Aportar mais"></p-button>
-                                <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger" (onClick)="excluirAtivo(ativo)" title="Remover ativo"></p-button>
+                                <p-button icon="pi pi-chart-line" severity="info" [text]="true" class="p-button-sm" (onClick)="abrirModalHistorico(ativo)" title="Ver Histórico de Cotações"></p-button>
+                                <p-button icon="pi pi-plus" severity="success" [text]="true" class="p-button-sm" (onClick)="abrirModalAporte(ativo)" title="Aportar mais"></p-button>
+                                <p-button icon="pi pi-trash" severity="danger" [text]="true" class="p-button-sm" (onClick)="excluirAtivo(ativo)" title="Excluir"></p-button>
                             </div>
                         </td>
                     </tr>
@@ -162,6 +163,37 @@
                 <div style="width: 100%; max-width: 22rem;">
                     <p-chart type="pie" [data]="dataPizza" [options]="optionsPizza"></p-chart>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- INFERIOR 2: Simulador de Projeção -->
+    <div class="col-12 lg:col-6 xl:col-8">
+        <div class="card h-full flex flex-col">
+            <div class="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-4">
+                <div>
+                    <h5 class="font-bold text-lg m-0">Simulador de Crescimento Patrimonial</h5>
+                    <p class="text-xs text-surface-500 mt-1 mb-0">Projete a evolução dos seus investimentos com aportes constantes.</p>
+                </div>
+                <!-- Controles do Simulador -->
+                <div class="flex flex-wrap gap-3 items-center">
+                    <div class="flex flex-col gap-1">
+                        <span class="text-xs font-semibold text-surface-500">Aporte Mensal</span>
+                        <p-inputNumber [(ngModel)]="projecaoAporteMensal" mode="currency" currency="BRL" locale="pt-BR" [min]="0" (onBlur)="initGraficos()" (keydown.enter)="initGraficos()" styleClass="w-32" class="w-32"></p-inputNumber>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <span class="text-xs font-semibold text-surface-500">Taxa Anual (%)</span>
+                        <p-inputNumber [(ngModel)]="projecaoTaxaAnual" suffix="%" [min]="0" [max]="100" (onBlur)="initGraficos()" (keydown.enter)="initGraficos()" styleClass="w-24" class="w-24"></p-inputNumber>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <span class="text-xs font-semibold text-surface-500">Período</span>
+                        <p-select [options]="opcoesAnos" [(ngModel)]="projecaoAnos" optionLabel="label" optionValue="value" (onChange)="initGraficos()" styleClass="w-32" class="w-32"></p-select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex-grow p-2" style="min-height: 250px;">
+                <p-chart type="line" [data]="dataProjecao" [options]="optionsProjecao" height="250px"></p-chart>
             </div>
         </div>
     </div>
@@ -208,6 +240,36 @@
     <ng-template pTemplate="footer">
         <p-button label="Cancelar" icon="pi pi-times" [text]="true" (onClick)="mostrarModal=false"></p-button>
         <p-button label="Salvar" icon="pi pi-check" (onClick)="salvarAtivo()" [loading]="carregando"></p-button>
+    </ng-template>
+</p-dialog>
+
+<!-- Modal de Histórico de Cotações (Gráfico Temporal) -->
+<p-dialog 
+    [header]="'Histórico de Cotações - ' + historicoTicker" 
+    [(visible)]="mostrarModalHistorico" 
+    [modal]="true" 
+    [style]="{width: '650px'}" 
+    [breakpoints]="{'960px': '75vw', '640px': '95vw'}"
+    [draggable]="false" 
+    [resizable]="false"
+    appendTo="body">
+    
+    <div class="flex flex-col gap-4 py-2">
+        <div *ngIf="carregandoHistorico" class="flex flex-col items-center justify-center py-8 gap-3">
+            <i class="pi pi-spin pi-spinner text-3xl text-primary"></i>
+            <span class="text-sm text-surface-500">Buscando cotações históricas...</span>
+        </div>
+        
+        <div *ngIf="!carregandoHistorico" class="w-full">
+            <p class="text-xs text-surface-500 mb-4">Acompanhe a variação diária do preço de fechamento da ação nos últimos 30 dias.</p>
+            <div style="height: 320px;">
+                <p-chart type="line" [data]="dataHistoricoAtivo" [options]="optionsHistoricoAtivo" height="300px"></p-chart>
+            </div>
+        </div>
+    </div>
+    
+    <ng-template pTemplate="footer">
+        <p-button label="Fechar" icon="pi pi-times" [text]="true" (onClick)="mostrarModalHistorico = false"></p-button>
     </ng-template>
 </p-dialog>
 </ng-container>

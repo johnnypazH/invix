@@ -89,4 +89,10 @@ export class CarteiraService {
       map((response) => this.unwrap(response))
     );
   }
+
+  getHistoricoAtivo(ticker: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/wallets/history/${ticker}`).pipe(
+      map((response) => this.unwrap(response))
+    );
+  }
 }
