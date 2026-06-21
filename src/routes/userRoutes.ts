@@ -86,4 +86,114 @@ router.put('/goal', async (req: AuthRequest, res: Response) => {
   }
 });
 
+router.get('/me', async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId;
+    const userRepository = AppDataSource.getRepository(User);
+    const user = await userRepository.findOneBy({ id: userId as string });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Usuário não encontrado.'
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        objetivoMensal: user.objetivoMensal
+      }
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: 'Erro ao buscar perfil do usuário.',
+      details: error.message
+    });
+  }
+});
+
+router.put('/profile', async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId;
+    const { name, email, currentPassword, newPassword } = req.body;
+
+    const userRepository = AppDataSource.getRepository(User);
+    const user = await userRepository.findOneBy({ id: userId as string });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Usuário não encontrado.'
+      });
+    }
+
+    // Se estiver mudando o e-mail, verificar se já existe outro usuário com o mesmo e-mail
+    if (email && email !== user.email) {
+      const existingUser = await userRepository.findOneBy({ email });
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: 'Este e-mail já está em uso por outro usuário.'
+        });
+      }
+      user.email = email;
+    }
+
+    if (name) {
+      user.name = name;
+    }
+
+    // Se o usuário quiser mudar a senha
+    if (newPassword) {
+      if (!currentPassword) {
+        return res.status(400).json({
+          success: false,
+          message: 'A senha atual é necessária para definir uma nova senha.'
+        });
+      }
+
+      // Verificar se a senha atual confere
+      let isPasswordValid = false;
+      if (user.password.startsWith('$2b$')) {
+        isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+      } else {
+        isPasswordValid = currentPassword === user.password;
+      }
+
+      if (!isPasswordValid) {
+        return res.status(400).json({
+          success: false,
+          message: 'A senha atual está incorreta.'
+        });
+      }
+
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      user.password = hashedPassword;
+    }
+
+    await userRepository.save(user);
+
+    return res.json({
+      success: true,
+      message: 'Perfil atualizado com sucesso.',
+      data: {
+        id: user.id,
+        name: user.name,
+        email: user.email
+      }
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: 'Erro ao atualizar perfil.',
+      details: error.message
+    });
+  }
+});
+
 export default router;

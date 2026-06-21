@@ -84,6 +84,9 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
     const historicoDividendosMes: { mes: string; valor: number }[] = [];
     let dividendosAnualTotal = 0;
+    const dividendosDetalhados: any[] = [];
+
+    let maioresPagadores: { ticker: string; total: number }[] = [];
 
     if (tickersArray.length > 0) {
       const oneYearAgo = new Date();
@@ -93,23 +96,67 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
       const { data: divData, error: divError } = await supabase
         .from('dividends')
-        .select('ticker, amount, payment_date')
+        .select('ticker, name, amount, type, payment_date, last_date_prior')
         .in('ticker', tickersArray)
         .gte('payment_date', dateString12m);
 
       if (!divError && divData) {
         const dividendosPorAcaoMes = new Map<string, Map<string, number>>();
+        const pagadoresMap = new Map<string, number>();
 
         divData.forEach((row: any) => {
           const t = row.ticker.toUpperCase();
           const amt = Number(row.amount);
-          const mes = row.payment_date.substring(0, 7);
+          const mes = row.payment_date ? row.payment_date.substring(0, 7) : '';
 
-          if (!dividendosPorAcaoMes.has(mes)) {
-            dividendosPorAcaoMes.set(mes, new Map<string, number>());
+          if (mes) {
+            if (!dividendosPorAcaoMes.has(mes)) {
+              dividendosPorAcaoMes.set(mes, new Map<string, number>());
+            }
+            const acaoMap = dividendosPorAcaoMes.get(mes)!;
+            acaoMap.set(t, (acaoMap.get(t) || 0) + amt);
           }
-          const acaoMap = dividendosPorAcaoMes.get(mes)!;
-          acaoMap.set(t, (acaoMap.get(t) || 0) + amt);
+
+          // Encontra a quantidade que o usuário possui desse ativo nas suas carteiras
+          let quantidadeTotal = 0;
+          ativosList.forEach((ativo: any) => {
+            if (ativo.ticker.toUpperCase() === t) {
+              quantidadeTotal += ativo.quantidade || ativo.quantity || 0;
+            }
+          });
+
+          if (quantidadeTotal > 0 && row.payment_date) {
+            const totalRecebido = amt * quantidadeTotal;
+            dividendosDetalhados.push({
+              ticker: t,
+              nome: row.name || t,
+              valorUnitario: amt,
+              tipo: (row.type || 'Dividendo').toUpperCase(),
+              dataCom: row.last_date_prior || null,
+              dataPagamento: row.payment_date || null,
+              quantidade: quantidadeTotal,
+              totalRecebido: Number(totalRecebido.toFixed(2))
+            });
+
+            // Acumula os dividendos por ativo para o gráfico de Maiores Pagadores
+            pagadoresMap.set(t, (pagadoresMap.get(t) || 0) + totalRecebido);
+          }
+        });
+
+        // Monta o ranking dos maiores pagadores (Top 10)
+        maioresPagadores = Array.from(pagadoresMap.entries())
+          .map(([ticker, total]) => ({
+            ticker,
+            total: Number(total.toFixed(2))
+          }))
+          .sort((a, b) => b.total - a.total)
+          .slice(0, 10);
+
+        // Ordena por data de pagamento decrescente
+        dividendosDetalhados.sort((a, b) => {
+          const dateA = a.dataPagamento ? new Date(a.dataPagamento).getTime() : 0;
+          const dateB = b.dataPagamento ? new Date(b.dataPagamento).getTime() : 0;
+          return dateB - dateA;
         });
 
         const mesesArray = [];
@@ -149,6 +196,35 @@ router.get('/', async (req: AuthRequest, res: Response) => {
       historicoDividendosMes
     };
 
+    const ativosConsolidados: any[] = [];
+    ativosList.forEach((ativo: any) => {
+      const qty = ativo.quantidade || ativo.quantity || 0;
+      const pm = ativo.precoMedio || 0;
+      const t = ativo.ticker.toUpperCase();
+      const custo = qty * pm;
+
+      const existente = ativosConsolidados.find(a => a.ticker === t);
+      if (existente) {
+        existente.quantidade += qty;
+        existente.custoTotal += custo;
+        existente.precoMedio = existente.quantidade > 0 ? (existente.custoTotal / existente.quantidade) : 0;
+      } else {
+        ativosConsolidados.push({
+          ticker: t,
+          nome: ativo.nome || t,
+          setor: ativo.setor || 'Outros',
+          quantidade: qty,
+          precoMedio: pm,
+          custoTotal: custo
+        });
+      }
+    });
+
+    ativosConsolidados.forEach(a => {
+      a.custoTotal = Number(a.custoTotal.toFixed(2));
+      a.precoMedio = Number(a.precoMedio.toFixed(2));
+    });
+
     return res.json({
       success: true,
       data: {
@@ -162,7 +238,10 @@ router.get('/', async (req: AuthRequest, res: Response) => {
         },
         distribuicaoPorSetor: analyticsData.distribuicaoPorSetor,
         historicoDividendosMes: analyticsData.historicoDividendosMes,
-        historicoDividendos: analyticsData.historicoDividendosMes
+        historicoDividendos: analyticsData.historicoDividendosMes,
+        dividendosDetalhados: dividendosDetalhados.slice(0, 15), // Limita aos 15 últimos proventos
+        ativos: ativosConsolidados,
+        maioresPagadores: maioresPagadores
       }
     });
   } catch (err: any) {

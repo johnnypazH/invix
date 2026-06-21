@@ -8,6 +8,10 @@ import axios from 'axios';
 
 const router = Router();
 
+// Cache em memória para evitar requisições repetidas lentas na Brapi (TTL de 2 minutos)
+const quoteCache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_TTL_MS = 2 * 60 * 1000;
+
 router.get('/', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId;
@@ -61,14 +65,38 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
     let brapiMap = new Map<string, number>();
     if (tickersArray.length > 0) {
-      try {
-        const brapiToken = process.env.BRAPI_TOKEN;
-        const tickersString = tickersArray.join(',');
-        const response = await axios.get(`https://brapi.dev/api/quote/${tickersString}?token=${brapiToken}`);
-        const brapiResults = response.data.results || [];
-        brapiResults.forEach((item: any) => brapiMap.set(item.symbol, item.regularMarketPrice || 0));
-      } catch (err) {
-        console.error('Erro ao buscar preços na Brapi para o Dashboard:', err);
+      const now = Date.now();
+      const tickersToFetch: string[] = [];
+
+      tickersArray.forEach((ticker: string) => {
+        const cached = quoteCache.get(ticker);
+        if (cached && (now - cached.timestamp < CACHE_TTL_MS)) {
+          brapiMap.set(ticker, cached.data.regularMarketPrice || 0);
+        } else {
+          tickersToFetch.push(ticker);
+        }
+      });
+
+      if (tickersToFetch.length > 0) {
+        try {
+          const brapiToken = process.env.BRAPI_TOKEN;
+          const tickersString = tickersToFetch.join(',');
+          const response = await axios.get(`https://brapi.dev/api/quote/${tickersString}?token=${brapiToken}`);
+          const brapiResults = response.data.results || [];
+          brapiResults.forEach((item: any) => {
+            if (item && item.symbol) {
+              const tickerUpper = item.symbol.toUpperCase();
+              const price = item.regularMarketPrice || 0;
+              brapiMap.set(tickerUpper, price);
+              quoteCache.set(tickerUpper, {
+                data: item,
+                timestamp: now
+              });
+            }
+          });
+        } catch (err) {
+          console.error('Erro ao buscar preços na Brapi para o Dashboard:', err);
+        }
       }
     }
 
@@ -96,6 +124,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     let patrimonioTotal = 0;
     let totalInvestido = 0;
     let dividendosTotal = 0;
+    const todosAtivos: any[] = [];
 
     wallets.forEach(w => {
       let ativos = w.assets || [];
@@ -109,9 +138,35 @@ router.get('/', async (req: AuthRequest, res: Response) => {
           const precoAtual = brapiMap.get(ativo.ticker.toUpperCase()) || pm;
           const divPerShare = dividendos12mMap.get(ativo.ticker.toUpperCase()) || 0;
 
-          totalInvestido += qty * pm;
-          patrimonioTotal += qty * precoAtual;
-          dividendosTotal += qty * divPerShare;
+          const custo = qty * pm;
+          const valor = qty * precoAtual;
+          const proventos = qty * divPerShare;
+
+          totalInvestido += custo;
+          patrimonioTotal += valor;
+          dividendosTotal += proventos;
+
+          // Evita duplicar tickers no mesmo dashboard consolidando se aparecer em mais de uma carteira
+          const existente = todosAtivos.find(a => a.ticker === ativo.ticker.toUpperCase());
+          if (existente) {
+            existente.quantidade += qty;
+            existente.custoTotal += custo;
+            existente.valorTotal += valor;
+            existente.proventos12m += proventos;
+            existente.precoMedio = existente.quantidade > 0 ? (existente.custoTotal / existente.quantidade) : 0;
+            existente.precoAtual = precoAtual; // Atualiza com a cotação mais recente
+          } else {
+            todosAtivos.push({
+              ticker: ativo.ticker.toUpperCase(),
+              quantidade: qty,
+              precoMedio: pm,
+              precoAtual: precoAtual,
+              custoTotal: custo,
+              valorTotal: valor,
+              proventos12m: proventos,
+              carteiraNome: w.name
+            });
+          }
         });
       }
     });
@@ -132,6 +187,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
           nome: w.name,
           descricao: w.description || ''
         })),
+        ativos: todosAtivos,
         feedAtividadesRecentes: recentDividends.map((item: any) => ({
           ticker: item.ticker,
           amount: item.amount,

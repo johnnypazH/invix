@@ -8,6 +8,10 @@ import { supabase } from '../config/supabaseClient';
 
 const router = Router();
 
+// Cache em memória para evitar requisições repetidas lentas na Brapi (TTL de 2 minutos)
+const quoteCache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_TTL_MS = 2 * 60 * 1000;
+
 const traduzirSetor = (setorIngles: string): string => {
   const mapaSetores: Record<string, string> = {
     'Finance': 'Financeiro',
@@ -248,17 +252,61 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
     const ativoMap = new Map<string, number>();
 
     if (ativos.length > 0) {
-      const tickers = ativos.map((a: any) => a.ticker).join(',');
+      const tickersArray = ativos.map((a: any) => a.ticker.toUpperCase());
+      const tickers = tickersArray.join(',');
       const brapiToken = process.env.BRAPI_TOKEN;
 
+      // Busca os dividendos de todos os tickers da carteira na base Supabase
+      let dividendsDb: any[] = [];
       try {
-        const response = await axios.get(`https://brapi.dev/api/quote/${tickers}?token=${brapiToken}`);
-        const brapiResults = response.data.results || [];
+        const { data: divData, error: divError } = await supabase
+          .from('dividends')
+          .select('ticker, amount, payment_date')
+          .in('ticker', tickersArray);
+        if (!divError && divData) {
+          dividendsDb = divData;
+        }
+      } catch (err) {
+        console.error('Erro ao buscar dividendos para rentabilidade acumulada:', err);
+      }
+
+      try {
         const brapiMap = new Map();
-        brapiResults.forEach((item: any) => brapiMap.set(item.symbol, item));
+        const now = Date.now();
+        const tickersToFetch: string[] = [];
+
+        tickersArray.forEach((ticker: string) => {
+          const cached = quoteCache.get(ticker);
+          if (cached && (now - cached.timestamp < CACHE_TTL_MS)) {
+            brapiMap.set(ticker, cached.data);
+          } else {
+            tickersToFetch.push(ticker);
+          }
+        });
+
+        if (tickersToFetch.length > 0) {
+          try {
+            const tickersString = tickersToFetch.join(',');
+            const response = await axios.get(`https://brapi.dev/api/quote/${tickersString}?token=${brapiToken}`);
+            const brapiResults = response.data.results || [];
+            brapiResults.forEach((item: any) => {
+              if (item && item.symbol) {
+                const tickerUpper = item.symbol.toUpperCase();
+                brapiMap.set(tickerUpper, item);
+                quoteCache.set(tickerUpper, {
+                  data: item,
+                  timestamp: now
+                });
+              }
+            });
+          } catch (apiError) {
+            console.error('Erro ao buscar cotações na Brapi para carteira:', apiError);
+          }
+        }
 
         enrichedAssets = ativos.map((ativo: any) => {
-          const brapiData = brapiMap.get(ativo.ticker) || {};
+          const tickerUpper = ativo.ticker.toUpperCase();
+          const brapiData = brapiMap.get(tickerUpper) || {};
           const precoAtual = brapiData.regularMarketPrice || 0;
           const quantidade = ativo.quantity || 0;
           const pm = ativo.precoMedio || 0;
@@ -266,8 +314,27 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
           const setor = traduzirSetor(setorBanco || brapiData.sector || 'Outros');
           const nomeBanco = ativo.nome && ativo.nome !== ativo.ticker ? ativo.nome : null;
           const nome = nomeBanco || brapiData.shortName || ativo.ticker;
-          const rentabilidadePercentual = pm > 0 && precoAtual > 0 ? Number((((precoAtual - pm) / pm) * 100).toFixed(2)) : 0;
-          const rentabilidadeValor = pm > 0 && precoAtual > 0 ? Number(((precoAtual - pm) * quantidade).toFixed(2)) : 0;
+
+          // Cálculo dos dividendos recebidos desde a data de compra
+          let dividendosAcumulados = 0;
+          if (ativo.dataCompra) {
+            const dataCompraStr = typeof ativo.dataCompra === 'string'
+              ? ativo.dataCompra.split('T')[0]
+              : new Date(ativo.dataCompra).toISOString().split('T')[0];
+
+            dividendosAcumulados = dividendsDb
+              .filter((d: any) => d.ticker.toUpperCase() === tickerUpper && d.payment_date && d.payment_date >= dataCompraStr)
+              .reduce((sum: number, d: any) => sum + (Number(d.amount) * quantidade), 0);
+          } else {
+            dividendosAcumulados = dividendsDb
+              .filter((d: any) => d.ticker.toUpperCase() === tickerUpper)
+              .reduce((sum: number, d: any) => sum + (Number(d.amount) * quantidade), 0);
+          }
+
+          const ganhoDeCapital = pm > 0 && precoAtual > 0 ? (precoAtual - pm) * quantidade : 0;
+          const rentabilidadeValor = Number((ganhoDeCapital + dividendosAcumulados).toFixed(2));
+          const custoTotal = pm * quantidade;
+          const rentabilidadePercentual = custoTotal > 0 ? Number(((rentabilidadeValor / custoTotal) * 100).toFixed(2)) : 0;
 
           return {
             id: `${wallet.id}-${ativo.ticker}`,
@@ -279,7 +346,9 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
             dataCompra: ativo.dataCompra || null,
             precoAtual,
             rentabilidade: rentabilidadePercentual,
-            rentabilidadeValor
+            rentabilidadeValor,
+            dividendosRecebidos: Number(dividendosAcumulados.toFixed(2)),
+            ganhoCapital: Number(ganhoDeCapital.toFixed(2))
           };
         });
       } catch (apiError) {
@@ -298,47 +367,63 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
         }));
       }
 
+      let custoTotalCarteira = 0;
+      let proventosTotaisCarteira = 0;
+      let rentabilidadeTotalCarteira = 0;
+
       enrichedAssets.forEach((ativo: any) => {
         const precoCalculo = ativo.precoAtual > 0 ? ativo.precoAtual : ativo.precoMedio;
         const valorTotalAtivo = ativo.quantidade * precoCalculo;
 
         patrimonioTotal += valorTotalAtivo;
+        custoTotalCarteira += (ativo.precoMedio * ativo.quantidade);
+        proventosTotaisCarteira += (ativo.dividendosRecebidos || 0);
+        rentabilidadeTotalCarteira += (ativo.rentabilidadeValor || 0);
+
         setorMap.set(ativo.setor, (setorMap.get(ativo.setor) || 0) + valorTotalAtivo);
         ativoMap.set(ativo.ticker, (ativoMap.get(ativo.ticker) || 0) + valorTotalAtivo);
       });
-    }
 
-    const composicaoPorSetor = Array.from(setorMap.entries())
-      .map(([setor, valor]) => ({
-        setor,
-        valorTotal: Number(valor.toFixed(2)),
-        percentual: patrimonioTotal > 0 ? Number(((valor / patrimonioTotal) * 100).toFixed(2)) : 0
-      }))
-      .sort((a, b) => b.valorTotal - a.valorTotal);
+      const rentabilidadePercentualCarteira = custoTotalCarteira > 0
+        ? Number(((rentabilidadeTotalCarteira / custoTotalCarteira) * 100).toFixed(2))
+        : 0;
 
-    const composicaoPorAtivo = Array.from(ativoMap.entries())
-      .map(([ticker, valor]) => ({
-        ticker,
-        valorTotal: Number(valor.toFixed(2)),
-        percentual: patrimonioTotal > 0 ? Number(((valor / patrimonioTotal) * 100).toFixed(2)) : 0
-      }))
-      .sort((a, b) => b.valorTotal - a.valorTotal);
+      const composicaoPorSetor = Array.from(setorMap.entries())
+        .map(([setor, valor]) => ({
+          setor,
+          valorTotal: Number(valor.toFixed(2)),
+          percentual: patrimonioTotal > 0 ? Number(((valor / patrimonioTotal) * 100).toFixed(2)) : 0
+        }))
+        .sort((a, b) => b.valorTotal - a.valorTotal);
 
-    return res.json({
-      success: true,
-      data: {
-        carteira: {
-          id: wallet.id,
-          nome: wallet.name,
-          descricao: wallet.description || '',
-          metaMensal: wallet.metaMensal || null,
-          patrimonioTotal: Number(patrimonioTotal.toFixed(2)),
-          composicaoPorSetor,
-          composicaoPorAtivo,
-          assets: enrichedAssets
+      const composicaoPorAtivo = Array.from(ativoMap.entries())
+        .map(([ticker, valor]) => ({
+          ticker,
+          valorTotal: Number(valor.toFixed(2)),
+          percentual: patrimonioTotal > 0 ? Number(((valor / patrimonioTotal) * 100).toFixed(2)) : 0
+        }))
+        .sort((a, b) => b.valorTotal - a.valorTotal);
+
+      return res.json({
+        success: true,
+        data: {
+          carteira: {
+            id: wallet.id,
+            nome: wallet.name,
+            descricao: wallet.description || '',
+            metaMensal: wallet.metaMensal || null,
+            patrimonioTotal: Number(patrimonioTotal.toFixed(2)),
+            custoTotal: Number(custoTotalCarteira.toFixed(2)),
+            proventosTotais: Number(proventosTotaisCarteira.toFixed(2)),
+            rentabilidadeTotal: Number(rentabilidadeTotalCarteira.toFixed(2)),
+            rentabilidadePercentual: rentabilidadePercentualCarteira,
+            composicaoPorSetor,
+            composicaoPorAtivo,
+            assets: enrichedAssets
+          }
         }
-      }
-    });
+      });
+    }
   } catch (error: any) {
     return res.status(500).json({
       success: false,
