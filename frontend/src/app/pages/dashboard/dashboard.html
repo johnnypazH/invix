@@ -1,0 +1,113 @@
+<p-toast></p-toast>
+<p-confirmDialog [style]="{width: '450px'}"></p-confirmDialog>
+
+<div class="grid">
+    <!-- Header Principal -->
+    <div class="col-12 pb-2">
+        <div class="dashboard-header mb-0 mt-2">
+            <div>
+                <h2 class="m-0 font-bold text-surface-900 dark:text-surface-0">{{ saudacao }}</h2>
+                <p class="text-500 mt-1 mb-0">Aqui está o resumo dos seus investimentos.</p>
+            </div>
+            <p-button label="Criar Nova Carteira" icon="pi pi-plus" (onClick)="abrirModal()"></p-button>
+        </div>
+    </div>
+
+    <!-- Widget de Estatísticas (As 4 caixas) -->
+    <div class="col-12 py-0">
+        <app-stats-widget [patrimonioTotal]="patrimonioTotal" [ganhoTotal]="ganhoTotal" [totalAtivos]="totalAtivos" [dividendos]="dividendosTotal" [totalInvestido]="totalInvestido" [ativos]="ativos"></app-stats-widget>
+    </div>
+
+    <!-- Lista de Carteiras -->
+    <div class="col-12">
+        <div class="card mt-2">
+            <h4 class="mb-4 text-surface-900 dark:text-surface-0"><i class="pi pi-wallet text-primary mr-2"></i> Minhas Carteiras</h4>
+            <!-- Voltando para a p-table que era usada antes -->
+            <p-table [value]="carteiras" responsiveLayout="scroll">
+                <ng-template pTemplate="header">
+                    <tr>
+                        <th>Nome da Carteira</th>
+                        <th>Descrição</th>
+                        <th style="width: 15rem" class="text-center">Ações</th>
+                    </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-carteira>
+                    <tr>
+                        <td>
+                            <span class="font-bold text-lg">{{ carteira.nome }}</span>
+                        </td>
+                        <td>
+                            <span class="text-600">{{ carteira.descricao || 'Sem descrição' }}</span>
+                        </td>
+                        <td class="flex justify-content-center">
+                            <a pButton icon="pi pi-search" class="p-button-rounded p-button-outlined p-button-sm" [routerLink]="['/carteira', carteira.id]" title="Ver Detalhes"></a>
+                        </td>
+                    </tr>
+                </ng-template>
+                <ng-template pTemplate="emptymessage">
+                    <tr>
+                        <td colspan="3" class="text-center p-4">Nenhuma carteira encontrada. Que tal criar a primeira?</td>
+                    </tr>
+                </ng-template>
+            </p-table>
+
+        </div>
+    </div>
+
+    <!-- Feed de Dividendos (Opcional, mas muito legal!) -->
+    <div class="col-12 mt-4" *ngIf="feedDividendos.length > 0">
+        <h4 class="mb-4 text-surface-900 dark:text-surface-0"><i class="pi pi-calendar-plus text-primary mr-2"></i> Próximos Dividendos</h4>
+        <div class="grid">
+            <div *ngFor="let div of feedDividendos" class="col-12 md:col-6 lg:col-4 mb-3">
+                <div class="card h-full mb-0">
+                    <div class="flex justify-content-between align-items-center mb-2">
+                        <span class="font-bold text-xl">{{ div.ticker }}</span>
+                        <i class="pi pi-money-bill text-green-500 text-xl"></i>
+                    </div>
+                    <div class="flex flex-column gap-1">
+                        <span class="text-600 text-sm">Previsão de Pagamento:</span>
+                        <span class="font-medium">
+                            {{ div.payment_date | date:'dd/MM/yyyy' }}
+                        </span>
+                    </div>
+                    <div class="mt-3 flex justify-content-between align-items-center">
+                        <span class="text-sm">Valor/Ação:</span>
+                        <span class="font-bold text-green-600">{{ div.amount | currency:'BRL' }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal para Nova Carteira -->
+<p-dialog [header]="editando ? 'Editar Carteira' : 'Criar Nova Carteira'" [(visible)]="mostrarModal" [modal]="true" [style]="{width: '420px'}" [draggable]="false" [resizable]="false">
+    <div class="flex flex-col gap-4 py-2">
+        <div class="flex flex-col gap-2">
+            <label for="nome" class="font-bold text-sm text-surface-900 dark:text-surface-0">Nome da Carteira</label>
+            <input pInputText id="nome" [(ngModel)]="novaCarteira.nome" required autofocus class="w-full" />
+        </div>
+        <div class="flex flex-col gap-2">
+            <label for="descricao" class="font-bold text-sm text-surface-900 dark:text-surface-0">Descrição (Opcional)</label>
+            <textarea rows="3" pInputTextarea id="descricao" [(ngModel)]="novaCarteira.descricao" class="w-full"></textarea>
+        </div>
+        <div class="flex flex-col gap-2">
+            <label for="metaMensal" class="font-bold text-sm text-surface-900 dark:text-surface-0">Meta Mensal (Opcional)</label>
+            <p-inputNumber
+                id="metaMensal"
+                [(ngModel)]="novaCarteira.metaMensal"
+                mode="currency"
+                currency="BRL"
+                locale="pt-BR"
+                placeholder="R$ 0,00"
+                styleClass="w-full"
+                class="w-full">
+            </p-inputNumber>
+        </div>
+    </div>
+    <ng-template pTemplate="footer">
+        <p-button label="Cancelar" icon="pi pi-times" styleClass="p-button-text" (onClick)="mostrarModal=false"></p-button>
+        <p-button label="Salvar" icon="pi pi-check" (onClick)="salvarCarteira()" [loading]="carregando"></p-button>
+    </ng-template>
+</p-dialog>

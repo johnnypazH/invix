@@ -1,0 +1,102 @@
+/* Aumenta o tamanho da fonte de TODA a tabela neste componente */
+:host ::ng-deep .p-datatable {
+    font-size: 1.2rem; /* Aumenta a letra (O padrão é 1rem) */
+    padding: 5px;
+    margin: 5px;
+    
+    /* Ajuste no Cabeçalho */
+    .p-datatable-thead > tr > th {
+        font-size: 1.25rem; /* Cabeçalho levemente maior */
+        font-weight: 700;   /* Mais negrito */
+        padding: 1.2rem 1rem; /* Mais espaço para não ficar espremido */
+        background-color: var(--surface-50); /* Adapta-se ao tema (claro/escuro) */
+    }
+
+    /* Ajuste nas Linhas de Dados */
+    .p-datatable-tbody > tr > td {
+        padding: 1.2rem 1rem; /* Mais "respiro" entre os dados */
+        font-weight: 500; /* Letra um pouco mais encorpada para leitura fácil */
+    }
+
+    /* Aumenta o tamanho dos ícones de ordenação também */
+    .p-sortable-column-icon {
+        font-size: 1rem;
+    }
+}
+
+/* Wrapper para centralizar a carteira e evitar que estique demais em telas muito grandes */
+.carteira-wrapper {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+/* Espaçamento geral da página */
+.carteira-grid {
+    margin-top: 1rem;
+    width: 100%;
+    max-width: 1900px;
+    padding: 0 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Estilos do Cabeçalho da Carteira (onde fica o Dropdown e o botão Novo Aporte) */
+.carteira-header {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    gap: 1rem;
+
+    @media (min-width: 768px) {
+        flex-direction: row;
+    }
+}
+
+.carteira-title-group {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+
+    @media (min-width: 768px) {
+        width: auto;
+    }
+}
+
+.carteira-title {
+    margin: 0;
+    font-weight: 700;
+    font-size: 1.5rem;
+    display: none;
+
+    @media (min-width: 768px) {
+        display: block;
+    }
+}
+
+.carteira-dropdown {
+    width: 100%;
+    
+    @media (min-width: 768px) {
+        width: 20rem;
+    }
+}
+
+/* Estilo para dispor os cards de resumo horizontalmente e responsivos */
+.resumo-cards-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    width: 100%;
+    margin-bottom: 0.5rem;
+    margin-top: 1rem;
+}
+
+.resumo-card-item {
+    flex: 1 1 220px;
+    min-width: 220px;
+}

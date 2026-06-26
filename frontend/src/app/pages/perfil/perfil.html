@@ -1,0 +1,156 @@
+<p-toast></p-toast>
+
+<div class="max-w-2xl mx-auto py-6 px-4">
+    <!-- Cabeçalho da Página -->
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-3xl font-bold text-surface-900 dark:text-surface-0 flex items-center gap-3 m-0">
+                <i class="pi pi-user text-3xl text-emerald-500"></i>
+                Meu Perfil
+            </h1>
+            <p class="text-surface-500 dark:text-surface-400 m-0 mt-1">Gerencie suas informações pessoais e credenciais de segurança.</p>
+        </div>
+        <p-button 
+            label="Voltar" 
+            icon="pi pi-arrow-left" 
+            severity="secondary" 
+            [text]="true" 
+            routerLink="/">
+        </p-button>
+    </div>
+
+    <!-- Container do Spinner para carregamento inicial -->
+    <div *ngIf="carregando" class="card flex justify-center items-center py-12 border-round-xl">
+        <div class="flex flex-col items-center gap-3">
+            <i class="pi pi-spin pi-spinner text-4xl text-emerald-500"></i>
+            <span class="text-surface-600 dark:text-surface-300">Carregando dados do perfil...</span>
+        </div>
+    </div>
+
+    <!-- Formulário do Perfil -->
+    <div *ngIf="!carregando" class="card p-6 border-round-xl shadow-lg border border-surface-200 dark:border-surface-800 flex flex-col gap-6">
+        
+        <!-- Avatar e Identificação rápida -->
+        <div class="flex items-center gap-4 pb-4 border-b border-surface-200 dark:border-surface-800">
+            <div class="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
+                <i class="pi pi-user text-3xl text-emerald-500"></i>
+            </div>
+            <div>
+                <h3 class="text-lg font-bold text-surface-900 dark:text-surface-0 m-0">{{ nome || 'Usuário Invix' }}</h3>
+                <p class="text-sm text-surface-500 dark:text-surface-400 m-0">{{ email }}</p>
+            </div>
+        </div>
+
+        <!-- Seção 1: Dados Pessoais -->
+        <div class="flex flex-col gap-4">
+            <h4 class="text-base font-bold text-surface-800 dark:text-surface-100 flex items-center gap-2 m-0">
+                <i class="pi pi-info-circle text-emerald-500"></i>
+                Dados Pessoais
+            </h4>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="flex flex-col gap-2">
+                    <label for="nome" class="text-sm font-bold text-surface-700 dark:text-surface-300">Nome Completo</label>
+                    <input 
+                        pInputText 
+                        id="nome" 
+                        type="text" 
+                        [(ngModel)]="nome" 
+                        placeholder="Seu nome completo" 
+                        class="w-full" />
+                </div>
+                
+                <div class="flex flex-col gap-2">
+                    <label for="email" class="text-sm font-bold text-surface-700 dark:text-surface-300">E-mail</label>
+                    <input 
+                        pInputText 
+                        id="email" 
+                        type="email" 
+                        [(ngModel)]="email" 
+                        placeholder="exemplo@email.com" 
+                        class="w-full" />
+                </div>
+            </div>
+        </div>
+
+        <hr class="border-surface-200 dark:border-surface-800 m-0" />
+
+        <!-- Seção 2: Segurança / Alteração de Senha -->
+        <div class="flex flex-col gap-4">
+            <div>
+                <h4 class="text-base font-bold text-surface-800 dark:text-surface-100 flex items-center gap-2 m-0">
+                    <i class="pi pi-lock text-emerald-500"></i>
+                    Segurança e Senha
+                </h4>
+                <p class="text-xs text-surface-500 dark:text-surface-400 mt-1 mb-0">Preencha os campos abaixo apenas se desejar trocar a sua senha.</p>
+            </div>
+
+            <div class="flex flex-col gap-4">
+                <!-- Senha Atual -->
+                <div class="flex flex-col gap-2">
+                    <label for="senhaAtual" class="text-sm font-bold text-surface-700 dark:text-surface-300">Senha Atual</label>
+                    <p-password 
+                        id="senhaAtual" 
+                        [(ngModel)]="senhaAtual" 
+                        [toggleMask]="true" 
+                        [feedback]="false"
+                        styleClass="w-full"
+                        class="w-full"
+                        placeholder="Digite sua senha atual para autorizar a troca">
+                    </p-password>
+                </div>
+
+                <!-- Nova Senha e Confirmação -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="flex flex-col gap-2">
+                        <label for="novaSenha" class="text-sm font-bold text-surface-700 dark:text-surface-300">Nova Senha</label>
+                        <p-password 
+                            id="novaSenha" 
+                            [(ngModel)]="novaSenha" 
+                            [toggleMask]="true" 
+                            promptLabel="Escolha uma senha forte" 
+                            weakLabel="Fraca" 
+                            mediumLabel="Média" 
+                            strongLabel="Forte"
+                            styleClass="w-full"
+                            class="w-full"
+                            placeholder="Nova senha">
+                        </p-password>
+                    </div>
+
+                    <div class="flex flex-col gap-2">
+                        <label for="confirmarNovaSenha" class="text-sm font-bold text-surface-700 dark:text-surface-300">Confirmar Nova Senha</label>
+                        <p-password 
+                            id="confirmarNovaSenha" 
+                            [(ngModel)]="confirmarNovaSenha" 
+                            [toggleMask]="true" 
+                            [feedback]="false"
+                            styleClass="w-full"
+                            class="w-full"
+                            placeholder="Confirme a nova senha">
+                        </p-password>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botões de Ação -->
+        <div class="flex justify-end gap-3 pt-4 border-t border-surface-200 dark:border-surface-800">
+            <p-button 
+                label="Cancelar" 
+                severity="secondary" 
+                [text]="true" 
+                [disabled]="salvando" 
+                routerLink="/">
+            </p-button>
+            <p-button 
+                label="Salvar Alterações" 
+                icon="pi pi-check" 
+                severity="success"
+                [loading]="salvando" 
+                (onClick)="salvarAlteracoes()">
+            </p-button>
+        </div>
+
+    </div>
+</div>

@@ -1,0 +1,168 @@
+<div class="grid relatorios-grid">
+    <div class="col-12">
+        <div class="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-4 mt-2">
+            <div>
+                <h2 class="m-0 font-bold text-surface-900 dark:text-surface-0">Relatórios e Metas</h2>
+                <p class="text-500 mt-1 mb-0">Acompanhe sua evolução e projeções financeiras em tempo real.</p>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-3 items-end sm:items-center">
+                <div class="flex flex-col gap-1 w-full sm:w-auto">
+                    <span class="text-sm font-semibold text-surface-600 dark:text-surface-400">Meta Mensal</span>
+                    <p-inputnumber [(ngModel)]="objetivoMensal" mode="currency" currency="BRL" locale="pt-BR" (onBlur)="salvarMetaEAtualizar()" (keydown.enter)="salvarMetaEAtualizar()"></p-inputnumber>
+                </div>
+                <div class="flex flex-col gap-1 w-full sm:w-auto">
+                    <span class="text-sm font-semibold text-surface-600 dark:text-surface-400">Filtrar Carteira</span>
+                    <p-select [options]="carteiras" [(ngModel)]="carteiraSelecionada" optionLabel="nome" (onChange)="carregarDados()" styleClass="w-full sm:w-60"></p-select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <ng-container *ngIf="!carregando && analyticsData; else loadingTpl">
+    <!-- Meta de Independência Financeira -->
+    <div class="col-12">
+        <div class="card mt-2">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-4">
+                <div class="mb-3 md:mb-0 text-center md:text-left">
+                    <h4 class="m-0 text-surface-900 dark:text-surface-0 font-bold"><i class="pi pi-flag-fill text-primary mr-2 text-xl"></i> Independência Financeira</h4>
+                    <p class="text-500 mb-0 mt-1">Progresso rumo ao seu objetivo mensal.</p>
+                </div>
+                <div class="text-center md:text-right">
+                    <span class="text-3xl font-bold text-primary">{{ (analyticsData.metas.independenciaFinanceira.progressoAtual || 0) | currency:'BRL' }}</span>
+                    <span class="text-500 font-medium text-lg"> / {{ (analyticsData.metas.independenciaFinanceira.metaMensal || 0) | currency:'BRL' }} mês</span>
+                </div>
+            </div>
+            <p-progressbar [value]="analyticsData.metas.independenciaFinanceira.percentualConcluido || 0"></p-progressbar>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="col-12 xl:col-6 pt-0">
+        <div class="card h-full">
+            <h5 class="font-bold text-lg mb-1 text-surface-900 dark:text-surface-0">Distribuição de Valor por Setor</h5>
+            <p class="text-xs text-surface-500 dark:text-surface-400 mb-4">Veja a proporção em dinheiro (R$) alocada em cada setor da economia.</p>
+            <p-chart type="doughnut" [data]="dataSetores" [options]="optionsSetores"></p-chart>
+        </div>
+    </div>
+    <div class="col-12 xl:col-6 pt-0">
+        <div class="card h-full">
+            <h5 class="font-bold text-lg mb-1 text-surface-900 dark:text-surface-0">Histórico de Dividendos</h5>
+            <p class="text-xs text-surface-500 dark:text-surface-400 mb-4">Acompanhe o total de dinheiro recebido em proventos em cada mês do ano.</p>
+            <p-chart type="bar" [data]="dataHistorico" [options]="optionsHistorico"></p-chart>
+        </div>
+    </div>
+
+    <div class="col-12 pt-0 mt-4">
+        <div class="card">
+            <h5 class="font-bold text-lg mb-1 text-surface-900 dark:text-surface-0">Maiores Pagadores de Dividendos (Últimos 12 Meses)</h5>
+            <p class="text-xs text-surface-500 dark:text-surface-400 mb-4">Ranking de ativos que mais geraram renda passiva para o seu patrimônio.</p>
+            <p-chart type="bar" [data]="dataMaioresPagadores" [options]="optionsMaioresPagadores" height="320px"></p-chart>
+        </div>
+    </div>
+
+    <!-- Tabela Detalhada de Proventos -->
+    <div class="col-12 mt-2">
+        <div class="card">
+            <h5 class="font-bold text-lg mb-3 text-surface-900 dark:text-surface-0">Detalhamento dos Últimos Proventos Recebidos</h5>
+            <p-table [value]="analyticsData.dividendosDetalhados || []" [paginator]="true" [rows]="5" responsiveLayout="scroll" styleClass="p-datatable-striped">
+                <ng-template pTemplate="header">
+                    <tr>
+                        <th>Ativo</th>
+                        <th>Empresa</th>
+                        <th>Tipo</th>
+                        <th class="text-right">Qtd. na Época</th>
+                        <th class="text-right">Valor Unitário</th>
+                        <th class="text-right">Total Recebido</th>
+                        <th class="text-center">Data COM</th>
+                        <th class="text-center">Pagamento</th>
+                    </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-div>
+                    <tr>
+                        <td><span class="font-bold border-round p-2 surface-100">{{div.ticker}}</span></td>
+                        <td>{{div.nome}}</td>
+                        <td>
+                            <span class="px-2 py-1 text-xs font-semibold rounded"
+                                  [ngClass]="{
+                                    'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200': div.tipo === 'DIVIDENDO' || div.tipo === 'DIVIDENDOS', 
+                                    'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200': div.tipo === 'JCP' || div.tipo === 'JUROS SOBRE CAPITAL PROPRIO'
+                                  }">
+                                {{div.tipo}}
+                            </span>
+                        </td>
+                        <td class="text-right">{{div.quantidade}}</td>
+                        <td class="text-right">{{div.valorUnitario | currency:'BRL'}}</td>
+                        <td class="text-right font-bold text-green-600 dark:text-green-400">{{div.totalRecebido | currency:'BRL'}}</td>
+                        <td class="text-center">{{ (div.dataCom | date:'dd/MM/yyyy') || '-' }}</td>
+                        <td class="text-center">{{ (div.dataPagamento | date:'dd/MM/yyyy') || '-' }}</td>
+                    </tr>
+                </ng-template>
+                <ng-template pTemplate="emptymessage">
+                    <tr>
+                        <td colspan="8" class="text-center">Nenhum provento recebido nos últimos 12 meses.</td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        </div>
+    </div>
+
+    <!-- Relatório de Preço Médio (Imposto de Renda) -->
+    <div class="col-12 mt-4">
+        <div class="card border border-emerald-500/20 shadow-lg">
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h5 class="font-bold text-lg m-0 text-surface-900 dark:text-surface-0 flex items-center gap-2">
+                        <i class="pi pi-file-excel text-emerald-500"></i>
+                        Auxiliar de Declaração de Bens e Direitos (Imposto de Renda)
+                    </h5>
+                    <p class="text-xs text-surface-500 dark:text-surface-400 mt-1 mb-0">Consolidação de ativos com preço médio e sugestão de texto para preenchimento da discriminação.</p>
+                </div>
+            </div>
+
+            <p-table [value]="analyticsData.ativos || []" [paginator]="true" [rows]="10" responsiveLayout="scroll" styleClass="p-datatable-striped">
+                <ng-template pTemplate="header">
+                    <tr>
+                        <th>Ativo</th>
+                        <th>Nome da Empresa</th>
+                        <th>Setor</th>
+                        <th class="text-right">Qtd. Acumulada</th>
+                        <th class="text-right">Preço Médio</th>
+                        <th class="text-right">Custo Total</th>
+                        <th>Discriminação Sugerida para IRPF</th>
+                    </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-ativo>
+                    <tr>
+                        <td><span class="font-bold border-round p-2 surface-100">{{ativo.ticker}}</span></td>
+                        <td>{{ativo.nome}}</td>
+                        <td>{{ativo.setor}}</td>
+                        <td class="text-right font-medium">{{ativo.quantidade}}</td>
+                        <td class="text-right">{{ativo.precoMedio | currency:'BRL'}}</td>
+                        <td class="text-right font-bold text-surface-900 dark:text-surface-0">{{ativo.custoTotal | currency:'BRL'}}</td>
+                        <td>
+                            <div class="text-sm text-surface-600 dark:text-surface-400 p-2 bg-surface-100 dark:bg-surface-800 rounded border border-surface-200 dark:border-surface-700 select-all cursor-pointer" title="Clique para selecionar tudo e copiar">
+                                {{ ativo.quantidade }} cotas/ações do ativo {{ ativo.ticker }} ({{ ativo.nome }}), setor {{ ativo.setor }}, custodiadas pelo custo médio de aquisição de {{ ativo.precoMedio | currency:'BRL' }}, perfazendo o custo total declarado de {{ ativo.custoTotal | currency:'BRL' }}.
+                            </div>
+                        </td>
+                    </tr>
+                </ng-template>
+                <ng-template pTemplate="emptymessage">
+                    <tr>
+                        <td colspan="7" class="text-center">Nenhum ativo cadastrado para exibição.</td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        </div>
+    </div>
+    </ng-container>
+</div>
+
+<ng-template #loadingTpl>
+    <div class="col-12 w-full">
+        <div class="flex flex-col items-center justify-center mt-12 p-8">
+            <i class="pi pi-spin pi-spinner text-primary text-6xl mb-6"></i>
+            <h2 class="text-2xl font-bold text-surface-900 dark:text-surface-0 mb-2">Carregando Relatórios...</h2>
+            <p class="text-surface-600 dark:text-surface-400 text-lg text-center">Analisando seus dados e montando os gráficos.</p>
+        </div>
+    </div>
+</ng-template>

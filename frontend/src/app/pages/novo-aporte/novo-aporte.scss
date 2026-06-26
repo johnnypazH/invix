@@ -1,0 +1,66 @@
+/*
+   Ajustamos os estilos da tabela para que ela fique maior e mais legível,
+   seguindo o padrão que usamos na página "Minha Carteira".
+*/
+:host ::ng-deep .p-datatable {
+    font-size: 1.2rem; /* Aumenta a letra (O padrão é 1rem) */
+
+    /* Ajuste no Cabeçalho */
+    .p-datatable-thead > tr > th {
+        font-size: 1.25rem; 
+        font-weight: 700;   
+        padding: 1.5rem; /* Espaçamento mais equilibrado (1.5rem em todos os lados) */
+        background-color: var(--surface-50); /* Mantém a cor de fundo que se adapta ao tema */
+    }
+
+    /* Ajuste nas Linhas de Dados */
+    .p-datatable-tbody > tr > td {
+        padding: 1.5rem; /* Espaçamento mais equilibrado */
+        font-weight: 500; /* Letra um pouco mais encorpada para leitura fácil */
+        text-align: left; /* Garante que o texto esteja alinhado à esquerda */
+    }
+
+    /* Aumenta o tamanho dos ícones de ordenação também */
+    .p-sortable-column-icon {
+        font-size: 1rem;
+
+    }
+}
+
+:host ::ng-deep .layout-main {
+    padding: 0 !important; /* Remove todo o padding do layout-main */
+}
+
+/*
+  Controla o espaçamento do grid principal da página.
+  O 'gap' define o espaço entre os cards.*/
+.novo-aporte-grid {
+    padding: 0;
+    gap: 3rem; /* Aumentado para 3rem para um espaçamento maior entre as seções */
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+/*
+  Remove o padding padrão das colunas dentro deste grid específico.
+  Isso permite que os cards preencham a largura total da coluna.
+*/
+.novo-aporte-grid > .col-12 {
+    padding: 0;
+    height: auto;
+    width: 100%;
+}
+.novo-aporte-grid {
+    padding: 1rem; /* Adiciona um padding geral para o conteúdo não colar nas bordas */
+    gap: 2rem; /* Aumenta o espaço vertical entre os cards. Ajuste conforme necessário. */
+    height: auto;
+    width: 100%;
+
+}
+.botaoaddativosuperior{
+    padding: 1rem;
+    font-size: 2rem;
+}

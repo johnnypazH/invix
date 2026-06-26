@@ -1,0 +1,287 @@
+<!-- Toast para exibir mensagens de sucesso/erro -->
+<p-toast></p-toast>
+
+<ng-container *ngIf="carteiraIdSelecionada; else noWallet">
+
+<!-- Container para travar a largura em telas muito grandes e centralizar -->
+<div class="carteira-wrapper">
+<div class="grid carteira-grid">
+
+    <!-- Cards de Resumo da Carteira -->
+    <div class="resumo-cards-container" *ngIf="carteiraSelecionada">
+        <!-- Card 1: Patrimônio Atual -->
+        <div class="resumo-card-item">
+            <div class="card mb-0 h-full">
+                <div class="flex justify-between mb-3">
+                    <div>
+                        <span class="block text-500 font-medium mb-3">Patrimônio Atual</span>
+                        <div class="text-900 font-bold text-xl">{{ (carteiraSelecionada.patrimonioTotal || 0) | currency:'BRL' }}</div>
+                    </div>
+                    <div class="flex items-center justify-center bg-blue-100 dark:bg-blue-900/40 rounded-xl" style="width: 2.5rem; height: 2.5rem">
+                        <i class="pi pi-wallet text-blue-500 text-xl!"></i>
+                    </div>
+                </div>
+                <span class="text-500">Valor atual de mercado</span>
+            </div>
+        </div>
+
+        <!-- Card 2: Valor Investido -->
+        <div class="resumo-card-item">
+            <div class="card mb-0 h-full">
+                <div class="flex justify-between mb-3">
+                    <div>
+                        <span class="block text-500 font-medium mb-3">Total Investido</span>
+                        <div class="text-900 font-bold text-xl">{{ (carteiraSelecionada.custoTotal || 0) | currency:'BRL' }}</div>
+                    </div>
+                    <div class="flex items-center justify-center bg-orange-100 dark:bg-orange-900/40 rounded-xl" style="width: 2.5rem; height: 2.5rem">
+                        <i class="pi pi-money-bill text-orange-500 text-xl!"></i>
+                    </div>
+                </div>
+                <span class="text-500">Custo médio de aquisição</span>
+            </div>
+        </div>
+
+        <!-- Card 3: Proventos Recebidos -->
+        <div class="resumo-card-item">
+            <div class="card mb-0 h-full">
+                <div class="flex justify-between mb-3">
+                    <div>
+                        <span class="block text-500 font-medium mb-3">Proventos Recebidos</span>
+                        <div class="text-900 font-bold text-xl text-green-600 dark:text-green-400">{{ (carteiraSelecionada.proventosTotais || 0) | currency:'BRL' }}</div>
+                    </div>
+                    <div class="flex items-center justify-center bg-green-100 dark:bg-green-900/40 rounded-xl" style="width: 2.5rem; height: 2.5rem">
+                        <i class="pi pi-dollar text-green-500 text-xl!"></i>
+                    </div>
+                </div>
+                <span class="text-500">Dividendos + JCP acumulados</span>
+            </div>
+        </div>
+
+        <!-- Card 4: Rentabilidade Acumulada -->
+        <div class="resumo-card-item">
+            <div class="card mb-0 h-full">
+                <div class="flex justify-between mb-3">
+                    <div>
+                        <span class="block text-500 font-medium mb-3">Resultado Total</span>
+                        <div class="text-xl font-bold" [ngClass]="{'text-green-500': (carteiraSelecionada.rentabilidadeTotal || 0) >= 0, 'text-red-500': (carteiraSelecionada.rentabilidadeTotal || 0) < 0}">
+                            {{ (carteiraSelecionada.rentabilidadeTotal || 0) | currency:'BRL' }}
+                            <span class="text-xs ml-1">
+                                ({{ (carteiraSelecionada.rentabilidadePercentual || 0) > 0 ? '+' : '' }}{{ (carteiraSelecionada.rentabilidadePercentual || 0) | number:'1.2-2' }}%)
+                            </span>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-center rounded-xl" style="width: 2.5rem; height: 2.5rem"
+                         [ngClass]="{
+                            'bg-green-100 dark:bg-green-900/40': (carteiraSelecionada.rentabilidadeTotal || 0) >= 0,
+                            'bg-red-100 dark:bg-red-900/40': (carteiraSelecionada.rentabilidadeTotal || 0) < 0
+                         }">
+                        <i class="pi pi-chart-line text-xl!" [ngClass]="{'text-green-500': (carteiraSelecionada.rentabilidadeTotal || 0) >= 0, 'text-red-500': (carteiraSelecionada.rentabilidadeTotal || 0) < 0}"></i>
+                    </div>
+                </div>
+                <span class="text-500">Cotação + Proventos</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOPO: Tabela de Ativos (Card Visão da Carteira) -->
+    <div class="col-12">
+        <div class="card">
+            <div class="carteira-header mb-4">
+                <div class="carteira-title-group">
+                    <h2 class="carteira-title text-surface-900 dark:text-surface-0">
+                        Visão da Carteira <span class="text-primary font-bold ml-1" *ngIf="carteiraSelecionada">({{ carteiraSelecionada.nome }})</span>
+                    </h2>
+                    <p-select [options]="minhasCarteiras" 
+                              [(ngModel)]="carteiraSelecionada" 
+                              optionLabel="nome" 
+                              dataKey="id"
+                              (onChange)="onCarteiraChange()" 
+                              placeholder="Alternar carteira..." 
+                              styleClass="carteira-dropdown">
+                    </p-select>
+                </div>
+                <p-button label="Novo Aporte" icon="pi pi-plus" (onClick)="abrirModal()"></p-button>
+            </div>
+
+            <p-table [value]="ativos" [tableStyle]="{'min-width': '50rem'}" responsiveLayout="scroll">
+                <ng-template pTemplate="header">
+                    <tr>
+                        <th pSortableColumn="ticker">Ticker <p-sortIcon field="ticker"></p-sortIcon></th>
+                        <th pSortableColumn="nome">Nome <p-sortIcon field="nome"></p-sortIcon></th>
+                        <th pSortableColumn="setor">Setor <p-sortIcon field="setor"></p-sortIcon></th>
+                        <th pSortableColumn="quantidade" class="text-right">Quantidade <p-sortIcon field="quantidade"></p-sortIcon></th>
+                        <th pSortableColumn="precoMedio" class="text-right">Preço Médio <p-sortIcon field="precoMedio"></p-sortIcon></th>
+                        <th pSortableColumn="precoAtual" class="text-right">Preço Atual <p-sortIcon field="precoAtual"></p-sortIcon></th>
+                        <th class="text-right">Rentabilidade</th>
+                        <th pSortableColumn="dataCompra" class="text-center">Data Compra <p-sortIcon field="dataCompra"></p-sortIcon></th>
+                        <th class="text-center" style="width: 8rem">Ações</th>
+                    </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-ativo>
+                    <tr>
+                        <td>{{ativo.ticker}}</td>
+                        <td>{{ativo.nome}}</td>
+                        <td>{{ativo.setor}}</td>
+                        <td class="text-right">{{ativo.quantidade}}</td>
+                        <td class="text-right">{{ativo.precoMedio | currency:'BRL'}}</td>
+                        <td class="text-right">{{ativo.precoAtual | currency:'BRL'}}</td>
+                        <td class="text-right">
+                            <div [ngClass]="{'text-green-500': getRentabilidade(ativo) >= 0, 'text-red-500': getRentabilidade(ativo) < 0}">
+                                <div class="font-bold">{{ getRentabilidade(ativo) | currency:'BRL' }}</div>
+                                <div class="text-xs">
+                                    {{ (ativo.rentabilidade || 0) > 0 ? '+' : '' }}{{ ativo.rentabilidade | number:'1.2-2' }}%
+                                </div>
+                            </div>
+                            <div class="text-500" style="font-size: 0.7rem; line-height: 1;">
+                                Cotação: {{ (ativo.ganhoCapital || 0) | currency:'BRL' }} | Prov.: {{ (ativo.dividendosRecebidos || 0) | currency:'BRL' }}
+                            </div>
+                        </td>
+                        <td class="text-center">{{ (ativo.dataCompra | date:'dd/MM/yyyy') || '-' }}</td>
+                        <td class="text-center">
+                            <div class="flex justify-center items-center gap-2">
+                                <p-button icon="pi pi-chart-line" severity="info" [text]="true" class="p-button-sm" (onClick)="abrirModalHistorico(ativo)" title="Ver Histórico de Cotações"></p-button>
+                                <p-button icon="pi pi-plus" severity="success" [text]="true" class="p-button-sm" (onClick)="abrirModalAporte(ativo)" title="Aportar mais"></p-button>
+                                <p-button icon="pi pi-trash" severity="danger" [text]="true" class="p-button-sm" (onClick)="excluirAtivo(ativo)" title="Excluir"></p-button>
+                            </div>
+                        </td>
+                    </tr>
+                </ng-template>
+                 <ng-template pTemplate="emptymessage">
+                    <tr>
+                        <td colspan="9" class="text-center">Nenhum ativo encontrado.</td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        </div>
+    </div>
+
+    <!-- INFERIOR: Gráfico de Composição -->
+    <div class="col-12 lg:col-6 xl:col-4">
+        <div class="card h-full flex flex-col">
+            <h5 class="font-bold">Composição por Setor</h5>
+            <div class="flex-grow flex items-center justify-center p-4 w-full">
+                <div style="width: 100%; max-width: 22rem;">
+                    <p-chart type="pie" [data]="dataPizza" [options]="optionsPizza"></p-chart>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- INFERIOR 2: Simulador de Projeção -->
+    <div class="col-12 lg:col-6 xl:col-8">
+        <div class="card h-full flex flex-col">
+            <div class="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-4">
+                <div>
+                    <h5 class="font-bold text-lg m-0">Simulador de Crescimento Patrimonial</h5>
+                    <p class="text-xs text-surface-500 mt-1 mb-0">Projete a evolução dos seus investimentos com aportes constantes.</p>
+                </div>
+                <!-- Controles do Simulador -->
+                <div class="flex flex-wrap gap-3 items-center">
+                    <div class="flex flex-col gap-1">
+                        <span class="text-xs font-semibold text-surface-500">Aporte Mensal</span>
+                        <p-inputNumber [(ngModel)]="projecaoAporteMensal" mode="currency" currency="BRL" locale="pt-BR" [min]="0" (onBlur)="initGraficos()" (keydown.enter)="initGraficos()" styleClass="w-32" class="w-32"></p-inputNumber>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <span class="text-xs font-semibold text-surface-500">Taxa Anual (%)</span>
+                        <p-inputNumber [(ngModel)]="projecaoTaxaAnual" suffix="%" [min]="0" [max]="100" (onBlur)="initGraficos()" (keydown.enter)="initGraficos()" styleClass="w-24" class="w-24"></p-inputNumber>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <span class="text-xs font-semibold text-surface-500">Período</span>
+                        <p-select [options]="opcoesAnos" [(ngModel)]="projecaoAnos" optionLabel="label" optionValue="value" (onChange)="initGraficos()" styleClass="w-32" class="w-32"></p-select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex-grow p-2" style="min-height: 250px;">
+                <p-chart type="line" [data]="dataProjecao" [options]="optionsProjecao" height="250px"></p-chart>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- Modal para Novo Aporte -->
+<p-dialog header="Adicionar Novo Aporte" [(visible)]="mostrarModal" [modal]="true" [style]="{width: '420px'}" [draggable]="false" [resizable]="false">
+    <div class="flex flex-col gap-4 py-2">
+        <div class="flex flex-col gap-2">
+            <label for="ticker" class="font-bold text-sm text-surface-900 dark:text-surface-0">Ticker (Código)</label>
+            <input pInputText id="ticker" [(ngModel)]="novoAtivo.ticker" (blur)="buscarDetalhesAtivo()" placeholder="Ex: WEGE3" autofocus class="text-lg w-full" />
+            <small class="text-500 mt-1 block" *ngIf="!buscandoAtivo">Ao sair do campo, o sistema buscará o preço.</small>
+            <small class="text-primary mt-1 block" *ngIf="buscandoAtivo"><i class="pi pi-spin pi-spinner"></i> Buscando na Brapi...</small>
+        </div>
+        <div class="flex flex-col gap-2 text-left">
+            <label for="quantidade" class="font-bold text-sm text-surface-900 dark:text-surface-0">Quantidade</label>
+            <p-inputNumber id="quantidade" 
+                           [(ngModel)]="novoAtivo.quantidade" 
+                           [showButtons]="true" 
+                           [min]="1"
+                           buttonLayout="horizontal" 
+                           inputId="horizontal" 
+                           spinnerMode="horizontal" 
+                           [step]="1"
+                           decrementButtonClass="p-button-danger" 
+                           incrementButtonClass="p-button-success" 
+                           incrementButtonIcon="pi pi-plus" 
+                           decrementButtonIcon="pi pi-minus"
+                           inputStyleClass="text-center font-bold text-lg"
+                           class="w-full"
+                           styleClass="w-full">
+            </p-inputNumber>
+        </div>
+        <div class="flex flex-col gap-2">
+            <label for="precoMedio" class="font-bold text-sm text-surface-900 dark:text-surface-0">Preço Pago (Unitário)</label>
+            <p-inputNumber id="precoMedio" [(ngModel)]="novoAtivo.precoMedio" mode="currency" currency="BRL" locale="pt-BR" placeholder="R$ 0,00" class="font-bold text-lg w-full" styleClass="w-full"></p-inputNumber>
+        </div>
+        <div class="flex flex-col gap-2">
+            <label for="dataCompra" class="font-bold text-sm text-surface-900 dark:text-surface-0">Data da Compra (Opcional)</label>
+            <p-datepicker id="dataCompra" [(ngModel)]="novoAtivo.dataCompra" dateFormat="dd/mm/yy" [showIcon]="true" placeholder="Ex: 20/05/2021" appendTo="body" styleClass="w-full" class="w-full"></p-datepicker>
+        </div>
+    </div>
+    <ng-template pTemplate="footer">
+        <p-button label="Cancelar" icon="pi pi-times" [text]="true" (onClick)="mostrarModal=false"></p-button>
+        <p-button label="Salvar" icon="pi pi-check" (onClick)="salvarAtivo()" [loading]="carregando"></p-button>
+    </ng-template>
+</p-dialog>
+
+<!-- Modal de Histórico de Cotações (Gráfico Temporal) -->
+<p-dialog 
+    [header]="'Histórico de Cotações - ' + historicoTicker" 
+    [(visible)]="mostrarModalHistorico" 
+    [modal]="true" 
+    [style]="{width: '650px'}" 
+    [breakpoints]="{'960px': '75vw', '640px': '95vw'}"
+    [draggable]="false" 
+    [resizable]="false"
+    appendTo="body">
+    
+    <div class="flex flex-col gap-4 py-2">
+        <div *ngIf="carregandoHistorico" class="flex flex-col items-center justify-center py-8 gap-3">
+            <i class="pi pi-spin pi-spinner text-3xl text-primary"></i>
+            <span class="text-sm text-surface-500">Buscando cotações históricas...</span>
+        </div>
+        
+        <div *ngIf="!carregandoHistorico" class="w-full">
+            <p class="text-xs text-surface-500 mb-4">Acompanhe a variação diária do preço de fechamento da ação nos últimos 30 dias.</p>
+            <div style="height: 320px;">
+                <p-chart type="line" [data]="dataHistoricoAtivo" [options]="optionsHistoricoAtivo" height="300px"></p-chart>
+            </div>
+        </div>
+    </div>
+    
+    <ng-template pTemplate="footer">
+        <p-button label="Fechar" icon="pi pi-times" [text]="true" (onClick)="mostrarModalHistorico = false"></p-button>
+    </ng-template>
+</p-dialog>
+</ng-container>
+
+<!-- Tela de aviso quando nenhuma carteira foi selecionada -->
+<ng-template #noWallet>
+    <div class="flex flex-col items-center justify-center mt-20">
+        <div class="card flex flex-col items-center text-center p-8 w-full max-w-lg">
+            <i class="pi pi-wallet text-6xl text-primary mb-6"></i>
+            <h2 class="text-2xl font-bold mb-4 text-surface-900 dark:text-surface-0">Nenhuma carteira selecionada</h2>
+            <p class="text-surface-600 dark:text-surface-400 mb-8 text-lg">Por favor, selecione uma carteira no Dashboard ou crie uma nova para visualizar seus ativos.</p>
+            <p-button label="Ir para o Dashboard" icon="pi pi-home" routerLink="/"></p-button>
+        </div>
+    </div>
+</ng-template>
