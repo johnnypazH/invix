@@ -35,9 +35,9 @@ import { AuthService } from '../../services/auth.service';
                         <i class="pi pi-user"></i>
                         <span>Profile</span>
                     </button>
-                    <p-menu #menu [model]="userMenuItems" [popup]="true"></p-menu>
                 </div>
             </div>
+            <p-menu #menu [model]="userMenuItems" [popup]="true"></p-menu>
         </div>
     </div>`
 })
