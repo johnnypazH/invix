@@ -130,6 +130,7 @@ export class Dashboard implements OnInit {
             }
             this.mostrarModal = false;
             this.messageService.add({ severity: 'success', summary: 'Sucesso', detail: 'Carteira atualizada!' });
+            this.carregarDashboard();
           },
           error: (err) => {
             console.error('Erro ao atualizar carteira:', err);
@@ -144,6 +145,7 @@ export class Dashboard implements OnInit {
             this.carteiras = [...this.carteiras, carteiraAdicionada];
             this.mostrarModal = false;
             this.messageService.add({ severity: 'success', summary: 'Sucesso', detail: 'Nova carteira criada!' });
+            this.carregarDashboard();
           },
           error: (err) => {
             console.error('Erro ao criar carteira:', err);
@@ -167,6 +169,7 @@ export class Dashboard implements OnInit {
             next: () => {
               this.carteiras = this.carteiras.filter(c => c.id !== carteira.id);
               this.messageService.add({ severity: 'success', summary: 'Sucesso', detail: 'Carteira excluída com sucesso!' });
+              this.carregarDashboard();
             },
             error: (err) => {
               console.error('Erro ao excluir carteira:', err);

@@ -5,12 +5,9 @@ import { Wallet } from '../models/Wallet';
 import { AuthRequest } from '../middlewares/authMiddleware';
 import axios from 'axios';
 import { supabase } from '../config/supabaseClient';
+import { quoteCache, CACHE_TTL_MS } from '../config/quoteCache';
 
 const router = Router();
-
-// Cache em memória para evitar requisições repetidas lentas na Brapi (TTL de 2 minutos)
-const quoteCache = new Map<string, { data: any; timestamp: number }>();
-const CACHE_TTL_MS = 2 * 60 * 1000;
 
 const traduzirSetor = (setorIngles: string): string => {
   const mapaSetores: Record<string, string> = {
@@ -449,22 +446,36 @@ router.post('/:id/assets', async (req: AuthRequest, res: Response) => {
     const tickerFormatado = novoAtivo.ticker.toUpperCase();
     let ativoValido = false;
     let brapiData: any = null;
+    const now = Date.now();
 
-    try {
-      const brapiToken = process.env.BRAPI_TOKEN;
-      const response = await axios.get(`https://brapi.dev/api/quote/${tickerFormatado}?token=${brapiToken}`);
-      if (response.data.results && response.data.results.length > 0) {
-        ativoValido = true;
-        brapiData = response.data.results[0];
+    // Tenta obter do cache compartilhado primeiro
+    const cached = quoteCache.get(tickerFormatado);
+    if (cached && (now - cached.timestamp < CACHE_TTL_MS)) {
+      ativoValido = true;
+      brapiData = cached.data;
+    } else {
+      try {
+        const brapiToken = process.env.BRAPI_TOKEN;
+        const response = await axios.get(`https://brapi.dev/api/quote/${tickerFormatado}?token=${brapiToken}`);
+        if (response.data.results && response.data.results.length > 0) {
+          ativoValido = true;
+          brapiData = response.data.results[0];
 
-        const listResponse = await axios.get(`https://brapi.dev/api/quote/list?search=${tickerFormatado}&token=${brapiToken}`);
-        if (listResponse.data.stocks && listResponse.data.stocks.length > 0) {
-          const stockInfo = listResponse.data.stocks.find((s: any) => s.stock === tickerFormatado) || listResponse.data.stocks[0];
-          brapiData.shortName = stockInfo.name || brapiData.shortName;
-          brapiData.sector = stockInfo.sector || brapiData.sector;
+          const listResponse = await axios.get(`https://brapi.dev/api/quote/list?search=${tickerFormatado}&token=${brapiToken}`);
+          if (listResponse.data.stocks && listResponse.data.stocks.length > 0) {
+            const stockInfo = listResponse.data.stocks.find((s: any) => s.stock === tickerFormatado) || listResponse.data.stocks[0];
+            brapiData.shortName = stockInfo.name || brapiData.shortName;
+            brapiData.sector = stockInfo.sector || brapiData.sector;
+          }
+
+          // Grava no cache compartilhado
+          quoteCache.set(tickerFormatado, {
+            data: brapiData,
+            timestamp: now
+          });
         }
-      }
-    } catch (e) {}
+      } catch (e) {}
+    }
 
     if (!ativoValido) {
       const { data: dbData } = await supabase.from('dividends').select('ticker').eq('ticker', tickerFormatado).limit(1);

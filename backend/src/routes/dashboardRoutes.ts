@@ -5,19 +5,21 @@ import { Wallet } from '../models/Wallet';
 import { supabase } from '../config/supabaseClient';
 import { AuthRequest } from '../middlewares/authMiddleware';
 import axios from 'axios';
+import { quoteCache, CACHE_TTL_MS } from '../config/quoteCache';
 
 const router = Router();
-
-// Cache em memória para evitar requisições repetidas lentas na Brapi (TTL de 2 minutos)
-const quoteCache = new Map<string, { data: any; timestamp: number }>();
-const CACHE_TTL_MS = 2 * 60 * 1000;
 
 router.get('/', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId;
 
     const userRepository = AppDataSource.getRepository(User);
-    const user = await userRepository.findOneBy({ id: userId as string });
+    const walletRepository = AppDataSource.getRepository(Wallet);
+
+    const [user, wallets] = await Promise.all([
+      userRepository.findOneBy({ id: userId as string }),
+      walletRepository.find({ where: { user: { id: userId } } })
+    ]);
 
     if (!user) {
       return res.status(404).json({
@@ -25,11 +27,6 @@ router.get('/', async (req: AuthRequest, res: Response) => {
         message: 'Usuário não encontrado.'
       });
     }
-
-    const walletRepository = AppDataSource.getRepository(Wallet);
-    const wallets = await walletRepository.find({
-      where: { user: { id: userId } }
-    });
 
     const userTickers = new Set<string>();
     let totalAtivos = 0;
