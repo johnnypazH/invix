@@ -26,7 +26,7 @@ import { AuthService } from '../../services/auth.service';
                 <i [ngClass]="{ 'pi ': true, 'pi-moon': layoutService.isDarkTheme(), 'pi-sun': !layoutService.isDarkTheme() }"></i>
             </button>
             <button class="layout-topbar-menu-button layout-topbar-action" (click)="menu.toggle($event)">
-                <i class="pi pi-ellipsis-v"></i>
+                <i class="pi pi-user"></i>
             </button>
 
             <div class="layout-topbar-menu hidden lg:block">
