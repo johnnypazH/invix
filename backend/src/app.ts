@@ -21,7 +21,7 @@ const allowedOrigins = [
 ].filter(Boolean) as string[];
 
 app.use(cors({
-  origin: allowedOrigins.length > 2 ? allowedOrigins : '*', // Libera para qualquer origem se FRONTEND_URL não estiver configurado, facilitando o MVP
+  origin: '*', // Libera para qualquer origem no MVP, evitando problemas de barra(/) no final da URL ou domínios diferentes
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'] // Segredo para o Token JWT passar!
 }));
