@@ -17,7 +17,7 @@ import { AuthService } from '../../services/auth.service';
                 <i class="pi pi-bars"></i>
             </button>
             <a class="layout-topbar-logo" routerLink="/">
-                <img src="assets/images/invix.jpeg" alt="Invix" class="h-8 mr-2"/>
+                <img src="assets/images/invix_logo.png" alt="Invix" class="h-8 mr-2"/>
             </a>
         </div>
 
