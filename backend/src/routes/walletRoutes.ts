@@ -341,6 +341,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
             quantidade,
             precoMedio: pm,
             dataCompra: ativo.dataCompra || null,
+            compras: ativo.compras || [],
             precoAtual,
             rentabilidade: rentabilidadePercentual,
             rentabilidadeValor,
@@ -531,6 +532,23 @@ router.post('/:id/assets', async (req: AuthRequest, res: Response) => {
 
       ativos[existingAssetIndex].quantity = novaQuantidadeTotal;
       ativos[existingAssetIndex].precoMedio = Number(novoPrecoMedio.toFixed(2));
+      ativos[existingAssetIndex].dataCompra = dataCompraToAdd; // Atualiza para a data do último aporte
+
+      // Inicializa e grava no histórico de compras
+      if (!Array.isArray(ativos[existingAssetIndex].compras)) {
+        ativos[existingAssetIndex].compras = [
+          {
+            data: asset.dataCompra || dataCompraToAdd,
+            quantidade: currentQty,
+            preco: currentPrecoMedio
+          }
+        ];
+      }
+      ativos[existingAssetIndex].compras.push({
+        data: dataCompraToAdd,
+        quantidade: quantityToAdd,
+        preco: precoMedioToAdd
+      });
 
       if (nomeFront) {
         ativos[existingAssetIndex].nome = nomeFront;
@@ -550,7 +568,14 @@ router.post('/:id/assets', async (req: AuthRequest, res: Response) => {
         precoMedio: precoMedioToAdd,
         dataCompra: dataCompraToAdd,
         nome: nomeToAdd,
-        setor: setorToAdd
+        setor: setorToAdd,
+        compras: [
+          {
+            data: dataCompraToAdd,
+            quantidade: quantityToAdd,
+            preco: precoMedioToAdd
+          }
+        ]
       });
     }
 
@@ -564,7 +589,8 @@ router.post('/:id/assets', async (req: AuthRequest, res: Response) => {
       setor: existingAssetIndex >= 0 ? ativos[existingAssetIndex].setor : setorToAdd,
       quantidade: existingAssetIndex >= 0 ? ativos[existingAssetIndex].quantity : quantityToAdd,
       precoMedio: existingAssetIndex >= 0 ? ativos[existingAssetIndex].precoMedio : precoMedioToAdd,
-      dataCompra: existingAssetIndex >= 0 ? ativos[existingAssetIndex].dataCompra : dataCompraToAdd
+      dataCompra: existingAssetIndex >= 0 ? ativos[existingAssetIndex].dataCompra : dataCompraToAdd,
+      compras: existingAssetIndex >= 0 ? ativos[existingAssetIndex].compras : [{ data: dataCompraToAdd, quantidade: quantityToAdd, preco: precoMedioToAdd }]
     };
 
     return res.status(201).json({

@@ -345,19 +345,10 @@ export class MinhaCarteira implements OnInit, OnDestroy {
         const corTexto = isDark ? '#e0e0e0' : '#4b5563';
         const corGrid = isDark ? '#424242' : '#e5e7eb';
 
-        // Determina a data de compra no formato YYYY-MM-DD para comparar de forma robusta
-        let dataCompraStr = '';
-        if (ativo.dataCompra) {
-          try {
-            const dateObj = new Date(ativo.dataCompra);
-            const ano = dateObj.getUTCFullYear();
-            const mes = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
-            const dia = String(dateObj.getUTCDate()).padStart(2, '0');
-            dataCompraStr = `${ano}-${mes}-${dia}`;
-          } catch (e) {
-            dataCompraStr = String(ativo.dataCompra).split('T')[0];
-          }
-        }
+        // Carrega o histórico de aportes (compras). Se for um ativo sem o array, cria o fallback
+        const compras = Array.isArray(ativo.compras) && ativo.compras.length > 0
+          ? ativo.compras
+          : (ativo.dataCompra ? [{ data: ativo.dataCompra, quantidade: ativo.quantidade, preco: ativo.precoMedio }] : []);
 
         this.dataHistoricoAtivo = {
           labels: history.map((h: any) => h.date),
@@ -374,7 +365,23 @@ export class MinhaCarteira implements OnInit, OnDestroy {
             },
             {
               label: 'Aporte Realizado',
-              data: history.map((h: any) => h.isoDate === dataCompraStr ? h.close : null),
+              data: history.map((h: any) => {
+                // Procura se tem algum aporte nesta data específica (isoDate)
+                const aporte = compras.find((c: any) => {
+                  if (!c.data) return false;
+                  try {
+                    const dateObj = new Date(c.data);
+                    const ano = dateObj.getUTCFullYear();
+                    const mes = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
+                    const dia = String(dateObj.getUTCDate()).padStart(2, '0');
+                    const cDateStr = `${ano}-${mes}-${dia}`;
+                    return h.isoDate === cDateStr;
+                  } catch (e) {
+                    return h.isoDate === String(c.data).split('T')[0];
+                  }
+                });
+                return aporte ? h.close : null;
+              }),
               type: 'line',
               showLine: false,
               pointRadius: 8,
@@ -401,8 +408,20 @@ export class MinhaCarteira implements OnInit, OnDestroy {
                   const closeFmt = 'R$ ' + Number(h.close).toFixed(2);
                   
                   if (datasetIndex === 1) { // Dataset do Aporte
-                    const pmFmt = 'R$ ' + Number(ativo.precoMedio).toFixed(2);
-                    const qtd = ativo.quantidade;
+                    // Encontra qual aporte ocorreu neste dia
+                    const aporte = compras.find((c: any) => {
+                      if (!c.data) return false;
+                      try {
+                        const dateObj = new Date(c.data);
+                        const cDateStr = `${dateObj.getUTCFullYear()}-${String(dateObj.getUTCMonth() + 1).padStart(2, '0')}-${String(dateObj.getUTCDate()).padStart(2, '0')}`;
+                        return h.isoDate === cDateStr;
+                      } catch (e) {
+                        return h.isoDate === String(c.data).split('T')[0];
+                      }
+                    });
+
+                    const pmFmt = 'R$ ' + Number(aporte ? aporte.preco : ativo.precoMedio).toFixed(2);
+                    const qtd = aporte ? aporte.quantidade : ativo.quantidade;
                     return [
                       `Aporte Realizado: ${qtd} ações`,
                       `Seu Preço Pago: ${pmFmt}`,
@@ -453,7 +472,25 @@ export class MinhaCarteira implements OnInit, OnDestroy {
     // Apenas se clicou na bolinha laranja do Aporte (datasetIndex === 1)
     if (datasetIndex === 1 && this.historicoAtual?.[index]) {
       const h = this.historicoAtual[index];
-      const precoPago = this.ativoSelecionadoParaHistorico?.precoMedio || 0;
+      
+      const compras = Array.isArray(this.ativoSelecionadoParaHistorico?.compras) && this.ativoSelecionadoParaHistorico.compras.length > 0
+        ? this.ativoSelecionadoParaHistorico.compras
+        : (this.ativoSelecionadoParaHistorico?.dataCompra ? [{ data: this.ativoSelecionadoParaHistorico.dataCompra, quantidade: this.ativoSelecionadoParaHistorico.quantidade, preco: this.ativoSelecionadoParaHistorico.precoMedio }] : []);
+
+      // Encontra qual aporte ocorreu neste dia
+      const aporte = compras.find((c: any) => {
+        if (!c.data) return false;
+        try {
+          const dateObj = new Date(c.data);
+          const cDateStr = `${dateObj.getUTCFullYear()}-${String(dateObj.getUTCMonth() + 1).padStart(2, '0')}-${String(dateObj.getUTCDate()).padStart(2, '0')}`;
+          return h.isoDate === cDateStr;
+        } catch (e) {
+          return h.isoDate === String(c.data).split('T')[0];
+        }
+      });
+
+      const precoPago = aporte ? aporte.preco : (this.ativoSelecionadoParaHistorico?.precoMedio || 0);
+      const qtdComprada = aporte ? aporte.quantidade : (this.ativoSelecionadoParaHistorico?.quantidade || 0);
       const diferenca = h.close - precoPago;
       const percentual = precoPago > 0 ? (diferenca / precoPago) * 100 : 0;
 
@@ -477,7 +514,7 @@ export class MinhaCarteira implements OnInit, OnDestroy {
       this.detalhesAporteParaExibicao = {
         ticker: this.historicoTicker,
         date: h.date,
-        quantidade: this.ativoSelecionadoParaHistorico?.quantidade,
+        quantidade: qtdComprada,
         precoPago: precoPago,
         open: h.open,
         close: h.close,
