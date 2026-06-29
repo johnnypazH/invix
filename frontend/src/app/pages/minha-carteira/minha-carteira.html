@@ -263,13 +263,90 @@
         <div *ngIf="!carregandoHistorico" class="w-full">
             <p class="text-xs text-surface-500 mb-4">Acompanhe a variação diária do preço de fechamento da ação nos últimos 30 dias.</p>
             <div style="height: 320px;">
-                <p-chart type="line" [data]="dataHistoricoAtivo" [options]="optionsHistoricoAtivo" height="300px"></p-chart>
+                <p-chart type="line" [data]="dataHistoricoAtivo" [options]="optionsHistoricoAtivo" height="300px" (onDataSelect)="onChartPointSelect($event)"></p-chart>
             </div>
         </div>
     </div>
     
     <ng-template pTemplate="footer">
         <p-button label="Fechar" icon="pi pi-times" [text]="true" (onClick)="mostrarModalHistorico = false"></p-button>
+    </ng-template>
+</p-dialog>
+
+<!-- Dialog Auxiliar para Detalhes do Aporte (Alta/Baixa) -->
+<p-dialog 
+    header="Análise do Aporte Realizado" 
+    [(visible)]="mostrarDetalhesAporte" 
+    [modal]="true" 
+    [style]="{width: '480px'}" 
+    [draggable]="false" 
+    [resizable]="false"
+    appendTo="body">
+    
+    <div *ngIf="detalhesAporteParaExibicao" class="flex flex-col gap-4 py-2">
+        <div class="text-center">
+            <span class="text-xs font-semibold text-surface-500 uppercase tracking-wider">Resultado da Análise da Compra</span>
+            <div class="text-xl mt-2" [ngClass]="detalhesAporteParaExibicao.corStatus">
+                {{ detalhesAporteParaExibicao.statusCompra }}
+            </div>
+        </div>
+
+        <div class="border-t border-b border-surface-200 dark:border-surface-800 py-3 flex flex-col gap-2">
+            <div class="flex justify-between text-sm">
+                <span class="text-surface-600 dark:text-surface-400">Ativo</span>
+                <span class="font-bold text-surface-900 dark:text-surface-0">{{ detalhesAporteParaExibicao.ticker }}</span>
+            </div>
+            <div class="flex justify-between text-sm">
+                <span class="text-surface-600 dark:text-surface-400">Data do Aporte</span>
+                <span class="font-bold text-surface-900 dark:text-surface-0">{{ detalhesAporteParaExibicao.date }}</span>
+            </div>
+            <div class="flex justify-between text-sm">
+                <span class="text-surface-600 dark:text-surface-400">Quantidade Comprada</span>
+                <span class="font-bold text-surface-900 dark:text-surface-0">{{ detalhesAporteParaExibicao.quantidade }} ações</span>
+            </div>
+            <div class="flex justify-between text-sm">
+                <span class="text-surface-600 dark:text-surface-400">Seu Preço Pago</span>
+                <span class="font-bold text-primary">{{ detalhesAporteParaExibicao.precoPago | currency:'BRL' }}</span>
+            </div>
+        </div>
+
+        <div class="flex flex-col gap-2">
+            <span class="text-xs font-bold text-surface-500 uppercase">Cotações do Mercado no Dia</span>
+            <div class="grid grid-cols-2 gap-3 text-center">
+                <div class="bg-surface-100 dark:bg-surface-800/50 p-2.5 rounded-xl border border-surface-200 dark:border-surface-800">
+                    <div class="text-xs text-surface-500">Abertura</div>
+                    <div class="font-semibold text-surface-900 dark:text-surface-0 mt-0.5">{{ detalhesAporteParaExibicao.open | currency:'BRL' }}</div>
+                </div>
+                <div class="bg-surface-100 dark:bg-surface-800/50 p-2.5 rounded-xl border border-surface-200 dark:border-surface-800">
+                    <div class="text-xs text-surface-500">Fechamento</div>
+                    <div class="font-semibold text-surface-900 dark:text-surface-0 mt-0.5">{{ detalhesAporteParaExibicao.close | currency:'BRL' }}</div>
+                </div>
+                <div class="bg-surface-100 dark:bg-surface-800/50 p-2.5 rounded-xl border border-surface-200 dark:border-surface-800">
+                    <div class="text-xs text-surface-500">Mínima (Baixa)</div>
+                    <div class="font-semibold text-green-500 mt-0.5">{{ detalhesAporteParaExibicao.low | currency:'BRL' }}</div>
+                </div>
+                <div class="bg-surface-100 dark:bg-surface-800/50 p-2.5 rounded-xl border border-surface-200 dark:border-surface-800">
+                    <div class="text-xs text-surface-500">Máxima (Alta)</div>
+                    <div class="font-semibold text-red-500 mt-0.5">{{ detalhesAporteParaExibicao.high | currency:'BRL' }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-surface-100 dark:bg-surface-800 p-3 rounded-xl border border-surface-200 dark:border-surface-800 flex justify-between items-center mt-2">
+            <span class="text-xs font-semibold text-surface-600 dark:text-surface-400">Diferença vs. Fechamento Atual</span>
+            <div class="text-right">
+                <span class="font-bold block" [ngClass]="{'text-green-500': detalhesAporteParaExibicao.diferenca >= 0, 'text-red-500': detalhesAporteParaExibicao.diferenca < 0}">
+                    {{ detalhesAporteParaExibicao.diferenca >= 0 ? '+' : '' }}{{ detalhesAporteParaExibicao.diferenca | currency:'BRL' }}
+                </span>
+                <span class="text-xs text-surface-500">
+                    ({{ detalhesAporteParaExibicao.diferenca >= 0 ? '+' : '' }}{{ detalhesAporteParaExibicao.percentual | number:'1.2-2' }}%)
+                </span>
+            </div>
+        </div>
+    </div>
+    
+    <ng-template pTemplate="footer">
+        <p-button label="Fechar" icon="pi pi-times" (onClick)="mostrarDetalhesAporte = false"></p-button>
     </ng-template>
 </p-dialog>
 </ng-container>

@@ -8,6 +8,8 @@ import { FormsModule } from '@angular/forms';
 import { SelectModule } from 'primeng/select';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { TableModule } from 'primeng/table';
+import { ToastModule } from 'primeng/toast';
+import { MessageService } from 'primeng/api';
 
 export interface AnalyticsData {
     metas: {
@@ -46,7 +48,8 @@ export interface AnalyticsData {
 @Component({
     selector: 'app-relatorios',
     standalone: true,
-    imports: [CommonModule, ChartModule, ProgressBarModule, FormsModule, SelectModule, InputNumberModule, TableModule],
+    imports: [CommonModule, ChartModule, ProgressBarModule, FormsModule, SelectModule, InputNumberModule, TableModule, ToastModule],
+    providers: [MessageService],
     templateUrl: './relatorios.html',
     styleUrl: './relatorios.scss'
 })
@@ -70,7 +73,8 @@ export class Relatorios implements OnInit {
 
     constructor(
         private layoutService: LayoutService,
-        private carteiraService: CarteiraService
+        private carteiraService: CarteiraService,
+        private messageService: MessageService
     ) {}
 
     ngOnInit() {
@@ -177,6 +181,25 @@ export class Relatorios implements OnInit {
             });
         }
     }
+
+    copiarTexto(ativo: any) {
+        if (!ativo) return;
+        const precoMedioFmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(ativo.precoMedio);
+        const custoTotalFmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(ativo.custoTotal);
+        
+        const texto = `${ativo.quantidade} cotas/ações do ativo ${ativo.ticker} (${ativo.nome}), setor ${ativo.setor}, custodiadas pelo custo médio de aquisição de ${precoMedioFmt}, perfazendo o custo total declarado de ${custoTotalFmt}.`;
+
+        navigator.clipboard.writeText(texto).then(() => {
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Copiado!',
+                detail: 'Discriminação copiada para a área de transferência.'
+            });
+        }).catch(err => {
+            console.error('Erro ao copiar texto: ', err);
+        });
+    }
+
     formatarMes(mesStr: string | undefined): string {
         if (!mesStr || mesStr.length < 7) return '-';
         const parts = mesStr.split('-');

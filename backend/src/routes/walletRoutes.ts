@@ -656,7 +656,11 @@ router.get('/history/:ticker', async (req: AuthRequest, res: Response) => {
       const mes = String(d.getMonth() + 1).padStart(2, '0');
       return {
         date: `${dia}/${mes}`,
-        close: Number(item.close.toFixed(2))
+        close: Number(item.close.toFixed(2)),
+        open: item.open ? Number(item.open.toFixed(2)) : null,
+        high: item.high ? Number(item.high.toFixed(2)) : null,
+        low: item.low ? Number(item.low.toFixed(2)) : null,
+        isoDate: d.toISOString().split('T')[0]
       };
     });
 

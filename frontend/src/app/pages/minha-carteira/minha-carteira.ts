@@ -44,6 +44,10 @@ export class MinhaCarteira implements OnInit, OnDestroy {
   historicoTicker: string = '';
   dataHistoricoAtivo: any;
   optionsHistoricoAtivo: any;
+  ativoSelecionadoParaHistorico: any | null = null;
+  historicoAtual: any[] = [];
+  mostrarDetalhesAporte: boolean = false;
+  detalhesAporteParaExibicao: any = null;
 
   // Parâmetros do simulador de crescimento
   projecaoAnos: number = 5;
@@ -328,6 +332,7 @@ export class MinhaCarteira implements OnInit, OnDestroy {
   abrirModalHistorico(ativo: any) {
     if (!ativo?.ticker) return;
 
+    this.ativoSelecionadoParaHistorico = ativo;
     this.historicoTicker = ativo.ticker.toUpperCase();
     this.mostrarModalHistorico = true;
     this.carregandoHistorico = true;
@@ -335,9 +340,13 @@ export class MinhaCarteira implements OnInit, OnDestroy {
     this.carteiraService.getHistoricoAtivo(this.historicoTicker).subscribe({
       next: (res: any) => {
         const history = res.history || [];
+        this.historicoAtual = history;
         const isDark = this.layoutService.isDarkTheme();
         const corTexto = isDark ? '#e0e0e0' : '#4b5563';
         const corGrid = isDark ? '#424242' : '#e5e7eb';
+
+        // Determina a data de compra no formato YYYY-MM-DD para comparar
+        const dataCompraStr = ativo.dataCompra ? new Date(ativo.dataCompra).toISOString().split('T')[0] : '';
 
         this.dataHistoricoAtivo = {
           labels: history.map((h: any) => h.date),
@@ -349,7 +358,19 @@ export class MinhaCarteira implements OnInit, OnDestroy {
               borderColor: '#10B981',
               tension: 0.3,
               borderWidth: 2,
-              pointRadius: 2
+              pointRadius: 2,
+              pointHoverRadius: 4
+            },
+            {
+              label: 'Aporte Realizado',
+              data: history.map((h: any) => h.isoDate === dataCompraStr ? h.close : null),
+              type: 'line',
+              showLine: false,
+              pointRadius: 8,
+              pointHoverRadius: 10,
+              pointBackgroundColor: '#F59E0B', // Laranja do Aporte
+              pointBorderColor: '#ffffff',
+              pointBorderWidth: 2
             }
           ]
         };
@@ -359,6 +380,32 @@ export class MinhaCarteira implements OnInit, OnDestroy {
           plugins: {
             legend: {
               labels: { color: corTexto }
+            },
+            tooltip: {
+              callbacks: {
+                label: (context: any) => {
+                  const datasetIndex = context.datasetIndex;
+                  const index = context.dataIndex;
+                  const h = history[index];
+                  const closeFmt = 'R$ ' + Number(h.close).toFixed(2);
+                  
+                  if (datasetIndex === 1) { // Dataset do Aporte
+                    const pmFmt = 'R$ ' + Number(ativo.precoMedio).toFixed(2);
+                    const qtd = ativo.quantidade;
+                    return [
+                      `Aporte Realizado: ${qtd} ações`,
+                      `Seu Preço Pago: ${pmFmt}`,
+                      `Fechamento do dia: ${closeFmt}`
+                    ];
+                  }
+                  
+                  const lines = [`Preço de Fechamento: ${closeFmt}`];
+                  if (h.open) lines.push(`Abertura: R$ ${Number(h.open).toFixed(2)}`);
+                  if (h.high) lines.push(`Máxima: R$ ${Number(h.high).toFixed(2)}`);
+                  if (h.low) lines.push(`Mínima: R$ ${Number(h.low).toFixed(2)}`);
+                  return lines;
+                }
+              }
             }
           },
           scales: {
@@ -386,6 +433,52 @@ export class MinhaCarteira implements OnInit, OnDestroy {
         this.mostrarModalHistorico = false;
       }
     });
+  }
+
+  onChartPointSelect(event: any) {
+    const datasetIndex = event.element.datasetIndex;
+    const index = event.element.index;
+
+    // Apenas se clicou na bolinha laranja do Aporte (datasetIndex === 1)
+    if (datasetIndex === 1 && this.historicoAtual?.[index]) {
+      const h = this.historicoAtual[index];
+      const precoPago = this.ativoSelecionadoParaHistorico?.precoMedio || 0;
+      const diferenca = h.close - precoPago;
+      const percentual = precoPago > 0 ? (diferenca / precoPago) * 100 : 0;
+
+      let statusCompra = '';
+      let corStatus = '';
+
+      if (precoPago <= h.low * 1.02) {
+        statusCompra = 'Excelente! Compra na mínima ou muito perto da baixa do dia.';
+        corStatus = 'text-green-500 font-bold';
+      } else if (precoPago <= (h.open + h.close) / 2) {
+        statusCompra = 'Boa Compra! Você pagou abaixo do preço médio de mercado do dia.';
+        corStatus = 'text-green-400 font-semibold';
+      } else if (precoPago >= h.high * 0.98) {
+        statusCompra = 'Atenção! Você pagou perto do preço máximo/alta do dia.';
+        corStatus = 'text-red-500 font-bold';
+      } else {
+        statusCompra = 'Compra Neutra. O preço pago ficou dentro da média de oscilação do dia.';
+        corStatus = 'text-yellow-500';
+      }
+
+      this.detalhesAporteParaExibicao = {
+        ticker: this.historicoTicker,
+        date: h.date,
+        quantidade: this.ativoSelecionadoParaHistorico?.quantidade,
+        precoPago: precoPago,
+        open: h.open,
+        close: h.close,
+        high: h.high,
+        low: h.low,
+        diferenca: diferenca,
+        percentual: percentual,
+        statusCompra: statusCompra,
+        corStatus: corStatus
+      };
+      this.mostrarDetalhesAporte = true;
+    }
   }
 
   ngOnDestroy() {
