@@ -521,6 +521,7 @@ router.post('/:id/assets', async (req: AuthRequest, res: Response) => {
 
     if (existingAssetIndex >= 0) {
       const asset = ativos[existingAssetIndex];
+      const originalDataCompra = asset.dataCompra;
       const currentQty = asset.quantity || 0;
       const currentPrecoMedio = asset.precoMedio || 0;
       const novaQuantidadeTotal = currentQty + quantityToAdd;
@@ -538,7 +539,7 @@ router.post('/:id/assets', async (req: AuthRequest, res: Response) => {
       if (!Array.isArray(ativos[existingAssetIndex].compras)) {
         ativos[existingAssetIndex].compras = [
           {
-            data: asset.dataCompra || dataCompraToAdd,
+            data: originalDataCompra || dataCompraToAdd,
             quantidade: currentQty,
             preco: currentPrecoMedio
           }
