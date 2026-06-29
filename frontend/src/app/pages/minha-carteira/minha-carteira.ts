@@ -529,6 +529,60 @@ export class MinhaCarteira implements OnInit, OnDestroy {
     }
   }
 
+  getAportesParaTabela(): any[] {
+    if (!this.ativoSelecionadoParaHistorico) return [];
+    
+    const compras = Array.isArray(this.ativoSelecionadoParaHistorico.compras) && this.ativoSelecionadoParaHistorico.compras.length > 0
+      ? this.ativoSelecionadoParaHistorico.compras
+      : (this.ativoSelecionadoParaHistorico.dataCompra ? [{ data: this.ativoSelecionadoParaHistorico.dataCompra, quantidade: this.ativoSelecionadoParaHistorico.quantidade, preco: this.ativoSelecionadoParaHistorico.precoMedio }] : []);
+      
+    return compras.map((c: any) => {
+      let closePrice: number | null = null;
+      let statusCompra = 'Sem Dados';
+      let corStatus = 'bg-surface-100 text-surface-600 dark:bg-surface-800 dark:text-surface-400';
+      
+      let cDateStr = '';
+      if (c.data) {
+        try {
+          const dateObj = new Date(c.data);
+          cDateStr = `${dateObj.getUTCFullYear()}-${String(dateObj.getUTCMonth() + 1).padStart(2, '0')}-${String(dateObj.getUTCDate()).padStart(2, '0')}`;
+        } catch (e) {
+          cDateStr = String(c.data).split('T')[0];
+        }
+      }
+
+      const h = this.historicoAtual.find((hist: any) => hist.isoDate === cDateStr);
+      
+      if (h) {
+        closePrice = h.close;
+        const precoPago = c.preco || 0;
+        
+        if (precoPago <= h.low * 1.02) {
+          statusCompra = 'Excelente';
+          corStatus = 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+        } else if (precoPago <= (h.open + h.close) / 2) {
+          statusCompra = 'Boa Compra';
+          corStatus = 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400';
+        } else if (precoPago >= h.high * 0.98) {
+          statusCompra = 'Atenção';
+          corStatus = 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+        } else {
+          statusCompra = 'Neutra';
+          corStatus = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+        }
+      }
+      
+      return {
+        data: c.data,
+        quantidade: c.quantidade,
+        preco: c.preco,
+        closePrice: closePrice,
+        statusCompra: statusCompra,
+        corStatus: corStatus
+      };
+    });
+  }
+
   ngOnDestroy() {
     if (this.subscription) {
       this.subscription.unsubscribe();

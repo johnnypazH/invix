@@ -160,6 +160,51 @@
             </p-table>
         </div>
     </div>
+
+    <!-- Histórico de Aportes Realizados -->
+    <div class="col-12 mt-4 animate-fadein">
+        <div class="card border border-primary-500/20 shadow-lg">
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h5 class="font-bold text-lg m-0 text-surface-900 dark:text-surface-0 flex items-center gap-2">
+                        <i class="pi pi-history text-primary"></i>
+                        Histórico Geral de Aportes Realizados
+                    </h5>
+                    <p class="text-xs text-surface-500 dark:text-surface-400 mt-1 mb-0">Linha do tempo de todas as compras de ações registradas nesta carteira.</p>
+                </div>
+            </div>
+
+            <p-table [value]="historicoCompras || []" [paginator]="true" [rows]="10" responsiveLayout="scroll" styleClass="p-datatable-striped">
+                <ng-template pTemplate="header">
+                    <tr>
+                        <th>Data do Aporte</th>
+                        <th>Ativo</th>
+                        <th>Nome da Empresa</th>
+                        <th class="text-right">Qtd. Comprada</th>
+                        <th class="text-right">Preço Pago (Unitário)</th>
+                        <th class="text-right">Custo do Aporte</th>
+                        <th class="text-right">Preço Médio Atual</th>
+                    </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-compra>
+                    <tr>
+                        <td>{{compra.data | date:'dd/MM/yyyy'}}</td>
+                        <td><span class="font-bold border-round p-2 surface-100">{{compra.ticker}}</span></td>
+                        <td>{{compra.nome}}</td>
+                        <td class="text-right font-medium">{{compra.quantidade}}</td>
+                        <td class="text-right text-primary font-semibold">{{compra.preco | currency:'BRL'}}</td>
+                        <td class="text-right font-bold text-surface-900 dark:text-surface-0">{{compra.custoTotal | currency:'BRL'}}</td>
+                        <td class="text-right text-surface-600 dark:text-surface-400">{{compra.precoMedioAtual | currency:'BRL'}}</td>
+                    </tr>
+                </ng-template>
+                <ng-template pTemplate="emptymessage">
+                    <tr>
+                        <td colspan="7" class="text-center">Nenhum aporte registrado nesta carteira.</td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        </div>
+    </div>
     </ng-container>
 </div>
 

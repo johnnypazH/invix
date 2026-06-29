@@ -70,6 +70,8 @@ export class Relatorios implements OnInit {
 
     dataMaioresPagadores: any;
     optionsMaioresPagadores: any;
+    
+    historicoCompras: any[] = [];
 
     constructor(
         private layoutService: LayoutService,
@@ -127,6 +129,32 @@ export class Relatorios implements OnInit {
                     ativos,
                     maioresPagadores
                 };
+
+                this.historicoCompras = [];
+                if (this.analyticsData.ativos && this.analyticsData.ativos.length > 0) {
+                    const list: any[] = [];
+                    this.analyticsData.ativos.forEach((ativo: any) => {
+                        const compras = Array.isArray(ativo.compras) && ativo.compras.length > 0
+                            ? ativo.compras
+                            : (ativo.dataCompra ? [{ data: ativo.dataCompra, quantidade: ativo.quantidade, preco: ativo.precoMedio }] : []);
+                        
+                        compras.forEach((c: any) => {
+                            list.push({
+                                ticker: ativo.ticker,
+                                nome: ativo.nome,
+                                setor: ativo.setor,
+                                data: c.data,
+                                quantidade: c.quantidade,
+                                preco: c.preco,
+                                custoTotal: (c.quantidade || 0) * (c.preco || 0),
+                                precoMedioAtual: ativo.precoMedio
+                            });
+                        });
+                    });
+                    
+                    // Ordenar por data decrescente
+                    this.historicoCompras = list.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
+                }
 
                 if (this.analyticsData.metas.independenciaFinanceira.metaMensal != null) {
                     this.objetivoMensal = this.analyticsData.metas.independenciaFinanceira.metaMensal;
