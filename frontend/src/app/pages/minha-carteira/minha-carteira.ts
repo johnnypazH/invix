@@ -345,8 +345,19 @@ export class MinhaCarteira implements OnInit, OnDestroy {
         const corTexto = isDark ? '#e0e0e0' : '#4b5563';
         const corGrid = isDark ? '#424242' : '#e5e7eb';
 
-        // Determina a data de compra no formato YYYY-MM-DD para comparar
-        const dataCompraStr = ativo.dataCompra ? new Date(ativo.dataCompra).toISOString().split('T')[0] : '';
+        // Determina a data de compra no formato YYYY-MM-DD para comparar de forma robusta
+        let dataCompraStr = '';
+        if (ativo.dataCompra) {
+          try {
+            const dateObj = new Date(ativo.dataCompra);
+            const ano = dateObj.getUTCFullYear();
+            const mes = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
+            const dia = String(dateObj.getUTCDate()).padStart(2, '0');
+            dataCompraStr = `${ano}-${mes}-${dia}`;
+          } catch (e) {
+            dataCompraStr = String(ativo.dataCompra).split('T')[0];
+          }
+        }
 
         this.dataHistoricoAtivo = {
           labels: history.map((h: any) => h.date),
