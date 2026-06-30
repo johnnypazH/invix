@@ -208,6 +208,18 @@ router.get('/', async (req: AuthRequest, res: Response) => {
         existente.quantidade += qty;
         existente.custoTotal += custo;
         existente.precoMedio = existente.quantidade > 0 ? (existente.custoTotal / existente.quantidade) : 0;
+        
+        // Combina os históricos de compras
+        if (Array.isArray(ativo.compras)) {
+          existente.compras = [...(existente.compras || []), ...ativo.compras];
+        } else if (ativo.dataCompra) {
+          existente.compras = [...(existente.compras || []), { data: ativo.dataCompra, quantidade: qty, preco: pm }];
+        }
+        
+        // Atualiza a data de compra para a mais recente
+        if (ativo.dataCompra && (!existente.dataCompra || new Date(ativo.dataCompra) > new Date(existente.dataCompra))) {
+          existente.dataCompra = ativo.dataCompra;
+        }
       } else {
         ativosConsolidados.push({
           ticker: t,
@@ -215,7 +227,11 @@ router.get('/', async (req: AuthRequest, res: Response) => {
           setor: ativo.setor || 'Outros',
           quantidade: qty,
           precoMedio: pm,
-          custoTotal: custo
+          custoTotal: custo,
+          dataCompra: ativo.dataCompra || null,
+          compras: Array.isArray(ativo.compras) && ativo.compras.length > 0
+            ? ativo.compras
+            : (ativo.dataCompra ? [{ data: ativo.dataCompra, quantidade: qty, preco: pm }] : [])
         });
       }
     });
