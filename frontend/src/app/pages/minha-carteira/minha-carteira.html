@@ -230,7 +230,8 @@
         </div>
         <div class="flex flex-col gap-2">
             <label for="precoMedio" class="font-bold text-sm text-surface-900 dark:text-surface-0">Preço Pago (Unitário)</label>
-            <p-inputNumber id="precoMedio" [(ngModel)]="novoAtivo.precoMedio" mode="currency" currency="BRL" locale="pt-BR" placeholder="R$ 0,00" class="font-bold text-lg w-full" styleClass="w-full"></p-inputNumber>
+            <p-inputNumber id="precoMedio" [(ngModel)]="novoAtivo.precoMedio" mode="currency" currency="BRL" locale="pt-BR" [minFractionDigits]="2" [maxFractionDigits]="2" placeholder="R$ 0,00" class="font-bold text-lg w-full" styleClass="w-full"></p-inputNumber>
+            <small class="text-surface-500 block">Dica: Use a vírgula (,) no teclado para digitar os centavos.</small>
         </div>
         <div class="flex flex-col gap-2">
             <label for="dataCompra" class="font-bold text-sm text-surface-900 dark:text-surface-0">Data da Compra (Opcional)</label>

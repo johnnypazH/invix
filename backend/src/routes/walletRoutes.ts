@@ -6,6 +6,7 @@ import { AuthRequest } from '../middlewares/authMiddleware';
 import axios from 'axios';
 import { supabase } from '../config/supabaseClient';
 import { quoteCache, CACHE_TTL_MS } from '../config/quoteCache';
+import { fetchAndSaveDividends } from '../services/brapi/brapiService';
 
 const router = Router();
 
@@ -582,6 +583,11 @@ router.post('/:id/assets', async (req: AuthRequest, res: Response) => {
 
     wallet.assets = ativos;
     await walletRepository.save(wallet);
+
+    // Tenta sincronizar dividendos do ativo em segundo plano para manter a base atualizada
+    fetchAndSaveDividends(tickerFormatado).catch(err => {
+      console.error(`[Sync] Erro ao sincronizar dividendos para ${tickerFormatado}:`, err);
+    });
 
     const assetToReturn = {
       id: `${wallet.id}-${tickerFormatado}`,
