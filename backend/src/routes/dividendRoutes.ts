@@ -94,6 +94,24 @@ router.get('/ativos', async (req: Request, res: Response) => {
   }
 });
 
+router.get('/quote/:ticker', async (req: Request, res: Response) => {
+  try {
+    const { ticker } = req.params;
+    const tickerUpper = ticker.toUpperCase();
+    const brapiToken = process.env.BRAPI_TOKEN;
+
+    const response = await axios.get(`https://brapi.dev/api/quote/${tickerUpper}?token=${brapiToken}`);
+    return res.status(200).json(response.data);
+  } catch (err: any) {
+    console.error(`Erro ao buscar cotação de ${req.params.ticker} na Brapi:`, err.message);
+    return res.status(err.response?.status || 500).json({
+      success: false,
+      message: `Erro ao buscar cotação do ativo ${req.params.ticker} na Brapi.`,
+      details: err.response?.data || err.message
+    });
+  }
+});
+
 router.get('/', async (req: Request, res: Response) => {
   try {
     const { ticker } = req.query;

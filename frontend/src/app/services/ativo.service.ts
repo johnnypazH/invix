@@ -67,14 +67,8 @@ export class AtivoService {
     );
   }
 
-  // Busca cotações reais na API pública da Brapi
+  // Busca cotações reais através do backend para usar o token com segurança
   buscarCotacaoBrapi(tickers: string): Observable<any> {
-    // Requisição pública sem token por questões de segurança.
-    
-    // DICA: Crie uma conta gratuita em brapi.dev e cole o seu token aqui dentro das aspas:
-    const brapiToken = ''; 
-    
-    const url = brapiToken ? `https://brapi.dev/api/quote/${tickers}?token=${brapiToken}` : `https://brapi.dev/api/quote/${tickers}`;
-    return this.http.get<any>(url);
+    return this.http.get<any>(`${this.baseUrl}/dividends/quote/${tickers}`);
   }
 }
